@@ -29,7 +29,7 @@ from .data import LABELS, ROOT
 
 PROJECT_NAME = "Diabetes Risk Predictor"
 SLUG = "diabetes-prediction"
-REPO_URL = "https://github.com/schirko/Diabetes-Prediction-Classification"
+REPO_URL = "https://github.com/schirko/Diabetes-Prediction"
 REPORTS = ROOT / "reports"
 
 NOTEBOOK_BLURBS = {
@@ -38,7 +38,9 @@ NOTEBOOK_BLURBS = {
     "02_honest_evaluation": "Why the original 81% can't be trusted, a leak-free pipeline, and six models compared "
                             "on the same 50 splits.",
     "03_thresholds_and_calibration": "Choosing a cut-off for screening, checking the probabilities, results by age, "
-                                     "and the final model.",
+                                     "and the eight-input baseline model.",
+    "04_missing_data": "Seven ways to handle the missing readings, a test of whether insulin can be guessed back, "
+                       "and why the published model now leaves insulin and skinfold out.",
 }
 DOCS = ["MILESTONES", "ENHANCEMENTS_AND_BUGS", "DECISIONS"]
 
@@ -145,14 +147,21 @@ def pct(v, digits=0):
 
 def tokens(m: dict) -> dict:
     """Every number on the front page, formatted, straight from metrics.json."""
-    comp, ls, scr, dft = m["comparison"], m["lucky_split"], m["threshold_screening"], m["threshold_default"]
-    old = next(b for b in m["by_age"] if b["band"].startswith("45"))
+    cur, m2 = m["current"], m["m2"]              # headline numbers describe the current (published) model
+    comp, ls, scr, dft = m["comparison"], m["lucky_split"], cur["threshold_screening"], cur["threshold_default"]
+    old = next(b for b in cur["by_age"] if b["band"].startswith("45"))
+    logistic_aucs = [v["auc"] for k, v in m2["strategies"].items() if not k.startswith("Gradient")]
+    best_recovery = max(v["r2"] for v in m2["recovery"]["Insulin"].values())
     return {
         "project_name": PROJECT_NAME, "slug": SLUG, "repo_url": REPO_URL,
         "built": f"{dt.date.today():%B %d, %Y}",
         "lucky_mean": pct(ls["mean"]), "lucky_min": pct(ls["min"]), "lucky_max": pct(ls["max"]),
         "lucky_beat": pct(ls["share_below_original"]),
-        "auc": f"{m['oof_auc']:.2f}", "auc_lo": f"{m['oof_auc_ci'][0]:.2f}", "auc_hi": f"{m['oof_auc_ci'][1]:.2f}",
+        "auc": f"{cur['oof_auc']:.2f}", "auc_lo": f"{cur['oof_auc_ci'][0]:.2f}", "auc_hi": f"{cur['oof_auc_ci'][1]:.2f}",
+        "n_inputs": str(len(cur["features"])),
+        "strat_lo": f"{min(logistic_aucs):.3f}", "strat_hi": f"{max(logistic_aucs):.3f}",
+        "rec_insulin": pct(best_recovery), "flips": str(m2["spread"]["flips_total"]),
+        "flips_pct": pct(m2["spread"]["flips_total"] / m["n"]),
         "sens_default": pct(dft["sensitivity"]), "sens_screen": pct(scr["sensitivity"]),
         "miss_default": pct(1 - dft["sensitivity"]), "cut": f"{scr['threshold']:.2f}",
         "fn_default": str(dft["fn"]), "fp_default": str(dft["fp"]), "fp_screen": str(scr["fp"]),
@@ -161,7 +170,7 @@ def tokens(m: dict) -> dict:
         "auc_lr": f"{comp['Logistic regression']['auc']:.3f}", "auc_rf": f"{comp['Random forest']['auc']:.3f}",
         "auc_gb": f"{comp['Gradient boosting']['auc']:.3f}", "auc_dt": f"{comp['Decision tree']['auc']:.3f}",
         "auc_glu": f"{comp['Glucose only (logistic)']['auc']:.3f}",
-        "cal_slope": f"{m['calibration']['slope']:.2f}", "spec_old": pct(old["specificity"]),
+        "cal_slope": f"{cur['calibration']['slope']:.2f}", "spec_old": pct(old["specificity"]),
     }
 
 
@@ -207,8 +216,8 @@ def build():
     data = {
         "model": {k: model[k] for k in ["features", "median", "mean", "scale", "coef", "intercept", "range"]},
         "labels": LABELS,
-        "cut": metrics["threshold_screening"]["threshold"],
-        "oof": {"p": [round(float(v), 3) for v in oof["p_model"]], "y": [int(v) for v in oof["outcome"]]},
+        "cut": metrics["current"]["threshold_screening"]["threshold"],
+        "oof": {"p": [round(float(v), 6) for v in oof["p_current"]], "y": [int(v) for v in oof["outcome"]]},
         "check": model["check"],
     }
     page = (ROOT / "site_template" / "index.html").read_text(encoding="utf-8")

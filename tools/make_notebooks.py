@@ -1,7 +1,10 @@
-"""One-time scaffold that wrote the Milestone 1 notebooks.
+"""Scaffold that writes the notebooks' structure and explanatory text.
 
-Kept for reference. The .ipynb files in notebooks/ are now the source of truth:
-edit them directly, then re-run them with `python -m src.run_notebooks`.
+    python tools/make_notebooks.py      rewrites every notebook WITHOUT outputs
+    python -m src.run_notebooks         then fills the outputs back in
+
+Each milestone adds its notebook here. Running this overwrites hand edits made
+directly in the .ipynb files, so make text changes here.
 """
 from pathlib import Path
 
@@ -355,7 +358,7 @@ display(pd.DataFrame({
     "1 SD is": model["scale"],
     "unit": [LABELS[f][1] for f in model["features"]],
 }, index=model["features"]).sort_values("odds multiplier per 1 SD", ascending=False))
-figures.odds_ratios();""",
+figures.odds_ratios(model);""",
             read="Each row is an input. The multiplier says how much the odds of diabetes change when that input "
                  "rises by one standard deviation (a typical step), with the others held fixed. Above 1 raises "
                  "the odds, below 1 lowers them, and 1 means no effect.",
@@ -363,9 +366,154 @@ figures.odds_ratios();""",
                   "pregnancies (×1.5 per 3) follow. Insulin and blood pressure come out slightly below 1, which "
                   "looks odd but is common when inputs overlap: once glucose is known, insulin adds little, and half "
                   "of it was filled in anyway. These are associations in this group of women, not causes.",
-            next="`python -m src.evaluate` writes this model to `reports/model.json`, and `python -m src.build_site` "
-                 "puts it into the interactive page. Milestone 2 starts with the biggest loose end: the 49% of "
-                 "insulin values that are missing.",
+            next="This eight-input model is the Milestone 1 baseline. Notebook 4 (Milestone 2) takes on the biggest "
+                 "loose end, the 49% of insulin values that are missing, and ends by changing which inputs the "
+                 "published model uses.",
+        ),
+    ],
+)
+
+# ---------------------------------------------------------------- notebook 4 (Milestone 2)
+build(
+    "04_missing_data.ipynb",
+    "4. Missing data: does it matter how the gaps are filled?",
+    "Insulin is missing for 49% of the women and skinfold thickness for 30%. Milestone 1 filled every gap with "
+    "the column's median, the simplest option. This notebook tests whether a smarter method does better (E08), "
+    "then measures how much one woman's estimate depends on what was guessed for her (E09). "
+    "It ends with a decision about the published model.",
+    [
+        dict(
+            h="4.1 Seven strategies, the same 50 splits",
+            look="Whether any way of handling the gaps scores better than the median fill from Milestone 1.",
+            code="""
+from src.data import load_data
+from src.missing import compare_strategies, strategies
+from src import figures
+
+X, y = load_data()
+for name in strategies():
+    print("-", name)
+table = compare_strategies(X, y)
+display(table[["auc", "auc_sd", "brier"]].sort_values("auc", ascending=False))
+figures.strategy_comparison();""",
+            read="Each row is one way of dealing with the gaps. The first six all end in the same logistic "
+                 "regression, so only the gap handling differs. \"Flags\" adds a yes/no column saying a reading was "
+                 "missing. \"Nearest neighbours\" copies from the 10 most similar women. \"Iterative\" predicts each "
+                 "missing value from the woman's other measurements. `auc` is the average over 50 splits and `auc_sd` "
+                 "is how much it wobbles from split to split.",
+            means="The six logistic versions land between 0.832 and 0.838. The wobble between splits is 0.027, about "
+                  "five times the whole range. Gradient boosting, which accepts gaps without any filling, is last at "
+                  "0.823. Nothing clever beats the median, and leaving insulin and skinfold out entirely scores as "
+                  "well as anything (0.838).",
+            next="Averages can hide a small but consistent edge, so compare each strategy with the baseline one "
+                 "split at a time.",
+        ),
+        dict(
+            h="4.2 Split by split against the baseline",
+            look="Whether any strategy beats the median fill consistently, even by a little.",
+            code="""
+paired = table[["auc_vs_baseline", "splits_better_than_baseline"]].drop(index="Median fill (Milestone 1)")
+paired.sort_values("auc_vs_baseline", ascending=False)""",
+            read="`auc_vs_baseline` is the average AUC gain over the median fill, measured on identical splits. "
+                 "`splits_better_than_baseline` is the share of the 50 splits where the strategy won (0.5 is a coin flip).",
+            means="Dropping the two columns wins 76% of the splits, but by an average of 0.002, which nobody would "
+                  "notice in use. Adding \"was missing\" flags to the median fill is a coin flip (52%) and slightly "
+                  "worse on average. So the gaps carry no useful signal, which matches the weak link seen in "
+                  "notebook 1.",
+            next="The model results say filling doesn't help. Check directly why: how well can a missing reading "
+                 "be guessed at all?",
+        ),
+        dict(
+            h="4.3 Can a missing reading be guessed back?",
+            look="The accuracy of each fill method, tested the only way possible: hide readings we do have, "
+                 "ask the method to guess them, and compare with the truth.",
+            code="""
+from src.missing import recovery_test
+for col in ["Insulin", "SkinThickness"]:
+    print(col)
+    display(recovery_test(X, col))
+figures.recovery();""",
+            read="A quarter of the known readings are hidden, 20 times over. `r2` is the share of the real variation "
+                 "the guesses recover: 0 means no better than guessing the median for everyone, 1 would be perfect. "
+                 "`typical_miss` is the average distance between guess and truth, in the measurement's own units.",
+            means="The best method recovers 29% of the variation in insulin and misses by 65 mu U/mL on average, "
+                  "against 80 for the plain median. Skinfold does a little better (40%, missing by 6 mm against 8). "
+                  "Insulin can't be reconstructed from the other measurements with any accuracy. Whatever goes into "
+                  "those 374 gaps is mostly noise, which explains why no fill method improved the model.",
+            next="If the fills are mostly noise, a woman's estimate partly depends on the luck of the fill. "
+                 "Measure how much.",
+        ),
+        dict(
+            h="4.4 One woman, 30 plausible fills",
+            look="How far each woman's estimate moves when the gaps are filled 30 different plausible ways "
+                 "instead of one \"best\" way. This is called multiple imputation.",
+            code="""
+from src.missing import multiple_imputation, spread_summary
+from src.evaluate import pick_threshold, out_of_fold
+from src.modeling import logistic
+
+draws = multiple_imputation(X, y)            # 768 women x 30 fills, every prediction held out
+cut_m1 = pick_threshold(y, out_of_fold(logistic(), X, y))
+spread = spread_summary(X, y, draws, cut_m1)
+display(pd.DataFrame(spread["by_group"]).T[["women", "median_width", "p90_width"]])
+figures.imputation_spread();""",
+            read="For each woman, the width is the gap between her 5th and 95th percentile estimates across the 30 "
+                 "fills, in percentage points. `median_width` is the typical woman in the group and `p90_width` is "
+                 "one of the widest 10%. The chart counts women at each width; the last bar collects 20 and over.",
+            means="A woman with no insulin reading typically moves 5.3 points across the fills, and one in ten "
+                  "moves about 10. Women with every reading still move 3.2 points, because the model itself was "
+                  "trained on filled-in data and shifts with each fill. So a single estimate such as \"31%\" hides "
+                  "a spread of several points that comes purely from guesswork.",
+            next="A few points only matters if it changes the decision, so count the women who cross the cut-off.",
+        ),
+        dict(
+            h="4.5 Who lands on both sides of the cut-off?",
+            look="Women who are flagged under some fills and cleared under others.",
+            code="""
+print(f"Cut-off {spread['threshold']:.2f}, {spread['draws']} fills")
+display(pd.DataFrame(spread["by_group"]).T[["women", "flips", "flip_share"]])
+print(f"Women whose decision depends on the fill: {spread['flips_total']} of {len(y)}")""",
+            read="A woman counts as a flip if she is flagged in more than 10% but fewer than 90% of the fills. "
+                 "`flip_share` is the share of the group that flips.",
+            means="53 of 768 women (7%) get a different screening decision depending on which plausible fill is used: "
+                  "8% of those with insulin missing and 6% of those with every reading. For those women the outcome "
+                  "is set by the fill, not by anything measured.",
+            next="Put the evidence together and decide what the published model should do.",
+        ),
+        dict(
+            h="4.6 Decision: leave insulin and skinfold out",
+            look="The results for a six-input model with insulin and skinfold removed, set against the "
+                 "eight-input baseline from notebook 3.",
+            code="""
+from src.evaluate import summarise
+from src.modeling import current_features, LEFT_OUT
+from src.data import FEATURES
+
+cols = current_features(FEATURES)
+print("Left out:", LEFT_OUT)
+print("Women who still have a gap in the six remaining inputs:", int(X[cols].isna().any(axis=1).sum()))
+
+def row(s):
+    t = s["threshold_screening"]
+    return {"inputs": len(s["features"]), "AUC": s["oof_auc"], "cut-off": t["threshold"],
+            "cases caught": t["tp"], "missed": t["fn"], "false alarms": t["fp"],
+            "calibration slope": s["calibration"]["slope"],
+            "cleared, age 45+": s["by_age"][2]["specificity"]}
+
+base = summarise(X, y, out_of_fold(logistic(), X, y))
+six = summarise(X[cols], y, out_of_fold(logistic(), X[cols], y))
+pd.DataFrame([row(base), row(six)], index=["Milestone 1 (eight inputs)", "Milestone 2 (six inputs)"]).T""",
+            read="Two models side by side, each scored on predictions for women it had not seen. The cut-off is "
+                 "re-chosen for each so that at least 85% of true cases are caught.",
+            means="The six-input model matches the baseline on every line: AUC 0.838 against 0.836, 231 cases caught "
+                  "against 229, and 194 false alarms against 188. The gaps fall from 374 women to 44, so almost "
+                  "nobody's estimate rests on a filled-in value any more. The decision (D09) is to publish the "
+                  "six-input model: it is as accurate, it stops inventing half a column, and it asks for two fewer "
+                  "measurements. What it does not fix is the weak result for women 45 and over, where only 22% of "
+                  "healthy women are cleared (B10).",
+            next="Milestone 3 lets effects bend and interact. Insulin gets one more hearing there, in the form "
+                 "where it should matter most: combined with glucose as a rough measure of insulin resistance (E29). "
+                 "The same milestone goes after B10.",
         ),
     ],
 )

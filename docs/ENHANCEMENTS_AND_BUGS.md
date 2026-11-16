@@ -16,8 +16,8 @@ Last updated: 2026-11-15
 | E05 | Screening cut-off, calibration check, glucose-rule benchmark, results by age band | M1 | Done |
 | E06 | In-browser risk explorer (model runs in JavaScript, no server) | M1 | Done |
 | E07 | Project page, lean notebook export, one-command build, parity tests | M1 | Done |
-| E08 | Compare missing-data strategies: median, missing flags, nearest neighbours, iterative, native, drop columns | M2 | Planned |
-| E09 | Multiple imputation: how much one person's risk moves because of guessed insulin | M2 | Planned |
+| E08 | Compare missing-data strategies: median, missing flags, nearest neighbours, iterative, native, drop columns; test whether hidden readings can be guessed back | M2 | Done |
+| E09 | Multiple imputation: how much one person's risk moves because of guessed insulin (30 fills, 53 women change sides of the cut-off) | M2 | Done |
 | E10 | Splines, interactions (age by glucose) and log transforms | M3 | Planned |
 | E11 | Explainable Boosting Machine and monotonic-constraint boosting | M3 | Planned |
 | E12 | Tuned SVM, k-NN, XGBoost/LightGBM and neural network in nested cross-validation (Optuna) | M4 | Planned |
@@ -37,6 +37,8 @@ Last updated: 2026-11-15
 | E26 | GitHub Actions: tests and notebooks re-run on every push | M10 | Planned |
 | E27 | Experiment tracking with MLflow | M10 | Planned |
 | E28 | Optional Streamlit or FastAPI version on the VPS | M10 | Planned |
+| E29 | Re-test insulin in a form that should matter: log scale and combined with glucose (insulin resistance), on women who have a reading | M3 | Planned |
+| E30 | Published model reduced to six inputs (insulin and skinfold left out); app, page numbers and tests follow the current model | M2 | Done |
 
 ## Bugs
 
@@ -55,7 +57,7 @@ The original file is kept unchanged as the "before".
 | B08 | Text said 624 training rows. An 80/20 split of 768 gives 614 and 154. | M1 | Fixed |
 | B09 | Headline accuracies (79% to 81%) came from one favourable split; R2 and mean squared error were used to judge a yes/no classifier. | M1 | Fixed by E03, E04 |
 | B10 | One cut-off for everyone clears only 22% of healthy women aged 45 and over, so for that group the model flags nearly everyone. | M1 | Open, target M3 (E10, E11) |
-| B11 | The Git repo tracks seven old notebook copies (about 50 MB) and an unrelated `yield_df.csv`. | M1 | Open, waiting on Scott's cleanup commands |
+| B11 | The Git repo tracks eight old notebook copies (about 50 MB) and an unrelated `yield_df.csv`. | M1 | Fixed 2026-11-15: moved to a local archive/ folder that Git ignores |
 
 ## How to use this file
 

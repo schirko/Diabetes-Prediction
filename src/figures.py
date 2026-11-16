@@ -84,11 +84,17 @@ def model_comparison():
     return fig
 
 
-def threshold_tradeoff():
-    """Cases caught and healthy women correctly cleared, for every cut-off."""
+def threshold_tradeoff(which: str = "baseline"):
+    """Cases caught and healthy women correctly cleared, for every cut-off.
+
+    which="baseline" is the eight-input Milestone 1 model (notebook 3);
+    which="current" is the published model (the project page).
+    """
     m = _metrics()
     oof = pd.read_csv(REPORTS / "oof.csv")
-    y, p = oof["outcome"], oof["p_model"].to_numpy()
+    y = oof["outcome"]
+    p = oof["p_current" if which == "current" else "p_model"].to_numpy()
+    cut = (m["current"] if which == "current" else m)["threshold_screening"]["threshold"]
     ts = np.arange(0.02, 0.99, 0.01)
     sens = [confusion_at(y, p, t)["sensitivity"] * 100 for t in ts]
     spec = [confusion_at(y, p, t)["specificity"] * 100 for t in ts]
@@ -97,7 +103,7 @@ def threshold_tradeoff():
     ax.plot(ts, spec, color=WARM, linewidth=2)
     ax.text(0.80, 22, "Cases caught\n(sensitivity)", color=INK, fontsize=10, ha="center")
     ax.text(0.80, 86, "Healthy women cleared\n(specificity)", color=INK, fontsize=10, ha="center", va="top")
-    for t, label in [(m["threshold_screening"]["threshold"], "screening\ncut-off"), (0.5, "default\n0.50")]:
+    for t, label in [(cut, "screening\ncut-off"), (0.5, "default\n0.50")]:
         ax.axvline(t, color=MUTED, linewidth=1)
         ax.text(t + 0.01, 3, label, color=INK, fontsize=9.5)
     ax.set_xlabel("Cut-off: flag everyone whose predicted risk is at or above this")
@@ -125,11 +131,14 @@ def calibration_plot():
     return fig
 
 
-def odds_ratios():
-    """How much each input moves the odds, per one standard deviation."""
-    model = json.loads((REPORTS / "model.json").read_text())
+def odds_ratios(model=None):
+    """How much each input moves the odds, per one standard deviation.
+
+    Pass a model dict from export_model(); without one, the current model in reports/ is used.
+    """
+    model = model or json.loads((REPORTS / "model.json").read_text())
     s = pd.Series(model["odds_ratio_per_sd"], index=[LABELS[f][0] for f in model["features"]]).sort_values()
-    fig, ax = plt.subplots(figsize=(7, 3.6))
+    fig, ax = plt.subplots(figsize=(7, 1.0 + 0.33 * len(s)))
     ax.axvline(1, color=MUTED, linewidth=1)
     ax.hlines(np.arange(len(s)), 1, s.values, color=GREEN, linewidth=2)
     ax.scatter(s.values, np.arange(len(s)), s=70, color=GREEN, zorder=3, edgecolor="white", linewidth=1.5)
@@ -139,8 +148,65 @@ def odds_ratios():
     ax.set_yticks(np.arange(len(s)), s.index)
     ax.set_xlim(0.6, 3.5)
     ax.set_xlabel("Odds multiplier for a one-standard-deviation increase (1 = no effect)")
-    ax.set_title("What the final model leans on")
+    ax.set_title("What the model leans on")
     ax.grid(axis="y", visible=False)
+    return fig
+
+
+def strategy_comparison():
+    """Milestone 2: every missing-data strategy on the same 50 splits."""
+    comp = pd.DataFrame(_metrics()["m2"]["strategies"]).T.sort_values("auc")
+    fig, ax = plt.subplots(figsize=(7.4, 3.7))
+    ypos = np.arange(len(comp))
+    colors = [WARM if n.startswith("Median fill (") else GREEN for n in comp.index]
+    ax.errorbar(comp["auc"], ypos, xerr=comp["auc_sd"], fmt="none", ecolor=MUTED, elinewidth=1.4, capsize=3)
+    ax.scatter(comp["auc"], ypos, s=70, c=colors, zorder=3, edgecolor="white", linewidth=1.5)
+    for yy, (_, r) in zip(ypos, comp.iterrows()):
+        ax.text(r["auc"] + r["auc_sd"] + 0.003, yy, f"{r['auc']:.3f}", va="center", color=INK, fontsize=10)
+    ax.set_yticks(ypos, comp.index)
+    ax.set_xlim(0.78, 0.885)
+    ax.set_xlabel("AUC (whisker = split-to-split wobble). Orange is the Milestone 1 baseline.")
+    ax.set_title("Seven ways to handle the gaps")
+    ax.grid(axis="y", visible=False)
+    return fig
+
+
+def recovery():
+    """Milestone 2: how well each method guesses readings we deliberately hid."""
+    rec = _metrics()["m2"]["recovery"]
+    methods = ["Median", "Nearest neighbours", "Iterative"]
+    fig, ax = plt.subplots(figsize=(7, 2.9))
+    width = 0.34
+    for k, (col, color) in enumerate([("Insulin", GREEN), ("SkinThickness", WARM)]):
+        vals = [max(rec[col][m]["r2"], 0) * 100 for m in methods]
+        bars = ax.bar(np.arange(3) + (k - 0.5) * (width + 0.03), vals, width, color=color,
+                      label=LABELS[col][0].split(",")[0])
+        for b, v in zip(bars, vals):
+            ax.text(b.get_x() + b.get_width() / 2, v + 1.5, f"{v:.0f}%", ha="center", color=INK, fontsize=10)
+    ax.set_xticks(np.arange(3), methods)
+    ax.set_ylim(0, 100)
+    ax.set_ylabel("Share of the variation recovered (%)")
+    ax.set_title("Can a hidden reading be guessed back?")
+    ax.legend(frameon=False, loc="upper left")
+    ax.grid(axis="x", visible=False)
+    return fig
+
+
+def imputation_spread():
+    """Milestone 2: how far each woman's estimate moves across 30 plausible fills."""
+    sp = _metrics()["m2"]["spread"]
+    width, miss = np.array(sp["width"]), np.array(sp["insulin_missing"])
+    bins = np.arange(0, 21, 1)
+    fig, ax = plt.subplots(figsize=(7, 3.3))
+    ax.hist(np.clip(width[~miss], 0, 20), bins=bins, histtype="step", linewidth=2, color=GREEN,
+            label="Insulin was measured")
+    ax.hist(np.clip(width[miss], 0, 20), bins=bins, histtype="step", linewidth=2, color=WARM,
+            label="Insulin was missing")
+    ax.set_xlabel("How far her estimate moves across the 30 fills (percentage points; last bar = 20 or more)")
+    ax.set_ylabel("Number of women")
+    ax.set_title("One woman, 30 plausible ways to fill the gaps")
+    ax.legend(frameon=False)
+    ax.grid(axis="x", visible=False)
     return fig
 
 
@@ -148,9 +214,11 @@ ALL = {
     "missing": missing_values,
     "lucky_split": lucky_split,
     "model_comparison": model_comparison,
-    "threshold": threshold_tradeoff,
-    "calibration": calibration_plot,
+    "threshold": lambda: threshold_tradeoff("current"),
     "odds": odds_ratios,
+    "strategies": strategy_comparison,
+    "recovery": recovery,
+    "spread": imputation_spread,
 }
 
 

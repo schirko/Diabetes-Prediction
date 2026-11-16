@@ -1,4 +1,4 @@
-# Diabetes Prediction & Classification
+# Diabetes Prediction
 
 A machine-learning project on the Pima Indians Diabetes dataset (768 women, 8 measurements, diagnosis within five years).
 It started as a college notebook that reported 81% accuracy. This repo rebuilds it with an evaluation that can be trusted,
@@ -13,7 +13,14 @@ and grows milestone by milestone into deeper machine learning.
 - Logistic regression (AUC 0.835) ties a random forest (0.838) on the same 50 cross-validation splits. Glucose alone reaches 0.791.
 - At the default 0.50 cut-off the model misses 116 of 268 women with diabetes. A screening cut-off of 0.24 catches 85%, with 188 false alarms instead of 61.
 - Predicted probabilities are well calibrated (slope 0.96).
-- Weak spot: for women 45 and over the model clears only 22% of those without diabetes (tracked as B10).
+- Weak spot: for women 45 and over the model clears only 22% of those without diabetes (tracked as B10, still open).
+
+## What Milestone 2 found
+
+- Seven ways of handling the missing readings score the same: AUC 0.832 to 0.838 for the six logistic versions.
+- Hidden insulin readings can't be guessed back. The best method recovers 29% of their variation.
+- Filling the gaps 30 plausible ways moves 53 of 768 women (7%) from one side of the cut-off to the other.
+- The published model now leaves insulin and skinfold out: six inputs, AUC 0.838, cut-off 0.23, 86% of cases caught.
 
 ## Layout
 
@@ -22,6 +29,7 @@ and grows milestone by milestone into deeper machine learning.
 | `data/diabetes.csv` | The dataset as published |
 | `src/data.py` | Loading; turns impossible zeros into missing values |
 | `src/modeling.py` | The candidate models, each in a leak-free pipeline |
+| `src/missing.py` | Milestone 2: missing-data strategies, recovery test, multiple imputation |
 | `src/evaluate.py` | Runs the whole evaluation, writes `reports/` |
 | `src/figures.py` | Charts shared by the notebooks and the site |
 | `src/run_notebooks.py` | Re-runs every notebook top to bottom |
@@ -30,6 +38,7 @@ and grows milestone by milestone into deeper machine learning.
 | `site_template/index.html` | Template for the project page and the in-browser model |
 | `docs/MILESTONES.md` | The ten-milestone plan |
 | `docs/ENHANCEMENTS_AND_BUGS.md` | Numbered tracker (E01..., B01...) |
+| `tools/make_notebooks.py` | Scaffold that writes the notebooks' structure and text |
 | `docs/DECISIONS.md` | Why things are the way they are |
 | `tests/` | Checks, including that the web page's maths equals scikit-learn's |
 | `Diabetes.ipynb` | The original college notebook, kept unchanged as the "before" |

@@ -1,14 +1,14 @@
 # Milestones
 
-The plan for the Diabetes Prediction & Classification project, written before the work is done.
+The plan for the Diabetes Prediction project, written before the work is done.
 Each milestone ends with notebooks that run cleanly, an updated project page, and its tracker items closed.
 Item numbers (E08, B10) refer to [ENHANCEMENTS_AND_BUGS.md](ENHANCEMENTS_AND_BUGS.md).
 
 | # | Milestone | Status | Main question | Notebooks |
 |---|---|---|---|---|
 | M1 | Honest baseline and first app | Done 2026-11-15 | How good is a simple model once the evaluation is fair? | 01, 02, 03 |
-| M2 | Missing data | Next | Half the insulin values are missing. Does the way we fill them change the answer? | 04 |
-| M3 | Non-linear effects and feature engineering | Planned | Can curved effects and interactions fix the weak results for women 45 and over? | 05 |
+| M2 | Missing data | Done 2026-11-15 | Half the insulin values are missing. Does the way we fill them change the answer? | 04 |
+| M3 | Non-linear effects and feature engineering | Next | Can curved effects and interactions fix the weak results for women 45 and over? | 05 |
 | M4 | Model zoo, tuning and nested cross-validation | Planned | Given a fair, tuned contest, does any model beat logistic regression? | 06, 07 |
 | M5 | Class imbalance and cost-based decisions | Planned | Do resampling tricks help, or is moving the cut-off enough? | 08 |
 | M6 | Explainability | Planned | Why did the model give this woman this number? | 09 |
@@ -28,16 +28,18 @@ Rebuilt the college notebook from the data up.
 - Built the in-browser risk explorer and the project page (E06, E07).
 
 **Exit check, met:** `python -m src.evaluate`, `python -m src.run_notebooks`, `python -m pytest` and
-`python -m src.build_site` all run clean; the web page's risk matches scikit-learn to 6 decimal places.
+`python -m src.build_site` all run clean; the web page's risk matches scikit-learn exactly on the test cases.
 
-## M2. Missing data
+## M2. Missing data (done)
 
-Insulin is missing for 49% of women and skinfold for 30%. M1 fills gaps with the median, the simplest choice.
+Insulin is missing for 49% of women and skinfold for 30%. M1 filled gaps with the median, the simplest choice.
 
-- E08: compare median fill, median plus "was missing" flags, nearest-neighbour fill, iterative (MICE-style) fill, models that accept gaps directly, and dropping the two worst columns. Same 50 splits.
-- E09: multiple imputation, to show how much a person's risk moves purely because of what was guessed for her insulin.
+- E08: compared seven strategies on the same 50 splits. The six logistic versions score AUC 0.832 to 0.838, a range one fifth the size of the split-to-split wobble (0.027). "Was missing" flags add nothing.
+- E08: hid known readings and asked each method to guess them back. The best recovers 29% of the variation in insulin and 40% in skinfold. Insulin can't be reconstructed.
+- E09: filled the gaps 30 plausible ways. A woman with no insulin reading typically moves 5.3 percentage points; 53 of 768 women (7%) land on both sides of the cut-off.
+- D09: the published model now leaves insulin and skinfold out. Six inputs score AUC 0.838 against 0.836 for eight, and women with any filled-in value fall from 374 to 44.
 
-**Exit check:** one recommended strategy with evidence; the app's "not measured" switch uses it.
+**Exit check, met:** one recommended strategy with evidence (leave the two columns out, median fill for the few remaining gaps); the app runs the six-input model and its "not measured" switch uses the median.
 
 ## M3. Non-linear effects and feature engineering
 
@@ -45,6 +47,7 @@ M1 assumes every input pushes risk along a straight line. The age results (B10) 
 
 - E10: splines for glucose, BMI and age; an age-by-glucose interaction; log transforms for skewed inputs.
 - E11: Explainable Boosting Machine and boosting with monotonic constraints (risk may only rise with glucose).
+- E29: give insulin one more hearing, log-transformed and combined with glucose as a rough insulin-resistance measure, on the 394 women who have a reading.
 
 **Exit check:** specificity for women 45 and over improves at the same sensitivity, or we show clearly that it can't with this data. B10 closed either way.
 

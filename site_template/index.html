@@ -131,8 +131,8 @@ footer { margin: 64px 0 40px; padding-top: 20px; border-top: 1px solid var(--lin
   <div class="kicker">Machine learning project · Pima diabetes data, 768 women</div>
   <h1>{{project_name}}</h1>
   <p class="lede">My college notebook on this data reported 81% accuracy. Rebuilding it properly showed that number was
-  a lucky split: the same method averages {{lucky_mean}} and misses {{miss_default}} of the women who have diabetes.
-  This project is the honest version, with a model you can try below.</p>
+  a lucky split: the same method averages {{lucky_mean}}, and at the standard cut-off a fairly evaluated model still
+  misses {{miss_default}} of the women who have diabetes. This project is the honest version, with a model you can try below.</p>
   <div class="links">
     <a class="btn primary" href="#try">Try the model</a>
     <a class="btn" href="#findings">Key findings</a>
@@ -150,7 +150,8 @@ footer { margin: 64px 0 40px; padding-top: 20px; border-top: 1px solid var(--lin
 
 <h2 id="try">Try the model</h2>
 <p class="note">Move the sliders to describe a woman. The estimate is the model's probability that she is diagnosed with
-diabetes within five years. The model runs in your browser, and nothing you enter is sent anywhere.</p>
+diabetes within five years. The model runs in your browser, and nothing you enter is sent anywhere. It uses {{n_inputs}}
+measurements; insulin and skinfold thickness were dropped because half of those readings were never taken.</p>
 <div class="presets" role="group" aria-label="Example women">
   <button class="btn" data-preset="typical">Typical woman in the data</button>
   <button class="btn" data-preset="low">Lower-risk example</button>
@@ -199,10 +200,12 @@ built and judged, not to assess anyone's health.</div>
   <li><b>The original 81% was luck.</b> Repeating the original method on 200 random train/test splits gives anything from
   {{lucky_min}} to {{lucky_max}}, averaging {{lucky_mean}}. The split in the college notebook beat {{lucky_beat}} of the others.
   Always answering "no diabetes" scores 65%.</li>
-  <li><b>Half the insulin column was never measured.</b> {{insulin_n}} of 768 insulin values and {{skin_n}} skinfold values
-  are zeros standing in for "missing". The original filled them using the whole table, which leaks test data into training.
-  Here the fill is learned inside each training fold.</li>
-  <li><b>The simplest model ties for best.</b> On the same 50 cross-validation splits, logistic regression scores AUC {{auc_lr}}
+  <li><b>Half the insulin column was never measured, and it can't be rescued.</b> {{insulin_n}} of 768 insulin values and
+  {{skin_n}} skinfold values are zeros standing in for "missing". Six ways of filling them all score between {{strat_lo}} and
+  {{strat_hi}}. When known insulin readings are hidden, the best method recovers only {{rec_insulin}} of their variation, and
+  {{flips}} women ({{flips_pct}}) get a different screening decision depending on how the gaps are filled. So the published
+  model leaves insulin and skinfold out, and scores the same without them.</li>
+  <li><b>The simplest model ties for best.</b> With all eight inputs on the same 50 cross-validation splits, logistic regression scores AUC {{auc_lr}}
   and a random forest {{auc_rf}}, a gap one tenth the size of the wobble between splits. Gradient boosting ({{auc_gb}}) and a
   decision tree ({{auc_dt}}) are behind. Glucose alone gets {{auc_glu}}.</li>
   <li><b>Accuracy hid the real problem.</b> At the standard 0.50 cut-off the model misses {{fn_default}} of 268 women with diabetes.
@@ -226,12 +229,20 @@ built and judged, not to assess anyone's health.</div>
   <figcaption>Every cut-off is a trade between missed cases and false alarms.</figcaption>
 </figure>
 <figure>
-  <img src="images/odds.png" alt="Chart of odds multipliers per standard deviation. Glucose 3.11, BMI 1.89, pregnancies 1.51, family-history score 1.33, age 1.17, skinfold 1.04, insulin 0.91, blood pressure 0.90.">
-  <figcaption>Glucose does most of the work.</figcaption>
-</figure>
-<figure>
   <img src="images/missing.png" alt="Bar chart of missing readings: insulin 49%, skinfold 30%, blood pressure 5%, BMI 1%, glucose 1%.">
   <figcaption>The gaps the original analysis didn't see.</figcaption>
+</figure>
+<figure>
+  <img src="images/strategies.png" alt="Dot chart of AUC for seven ways of handling missing values. The six logistic regression versions sit between {{strat_lo}} and {{strat_hi}}; gradient boosting is lowest. The whiskers are far wider than the differences.">
+  <figcaption>Seven ways to handle the gaps. The differences are a fraction of the split-to-split wobble.</figcaption>
+</figure>
+<figure>
+  <img src="images/spread.png" alt="Two outlined histograms of how far each woman's estimate moves across 30 plausible fills. Women with insulin missing move further, typically about 5 percentage points.">
+  <figcaption>How much one woman's estimate depends on what was guessed for her missing readings.</figcaption>
+</figure>
+<figure>
+  <img src="images/odds.png" alt="Chart of odds multipliers per standard deviation for the six inputs of the published model. Glucose has by far the largest effect, followed by BMI and pregnancies.">
+  <figcaption>What the published six-input model leans on. Glucose does most of the work.</figcaption>
 </figure>
 
 <h2 id="notebooks">The analysis, step by step</h2>
@@ -266,10 +277,14 @@ const SPEC = {
 };
 const SHORT = {Pregnancies: "Pregnancies", Glucose: "Glucose", BloodPressure: "Blood pressure", SkinThickness: "Skinfold",
   Insulin: "Insulin", BMI: "BMI", DiabetesPedigreeFunction: "Family history", Age: "Age"};
+const EXAMPLES = {   // by input name, so the model can gain or lose inputs without breaking these
+  low: {Pregnancies: 1, Glucose: 89, BloodPressure: 66, SkinThickness: 23, Insulin: 94, BMI: 28.1, DiabetesPedigreeFunction: 0.17, Age: 21},
+  high: {Pregnancies: 8, Glucose: 183, BloodPressure: null, SkinThickness: null, Insulin: null, BMI: 33.3, DiabetesPedigreeFunction: 0.67, Age: 42}
+};
 const PRESETS = {
   typical: M.median.map(v => v),
-  low: [1, 89, 66, 23, 94, 28.1, 0.17, 21],
-  high: [8, 183, 64, null, null, 33.3, 0.67, 42]
+  low: F.map(f => EXAMPLES.low[f]),
+  high: F.map(f => EXAMPLES.high[f])
 };
 const state = {v: M.median.slice(), miss: F.map(() => false), cut: D.cut};
 

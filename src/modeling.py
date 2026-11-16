@@ -14,6 +14,16 @@ from sklearn.tree import DecisionTreeClassifier
 
 SEED = 42
 
+# Milestone 2 decision (D09): insulin and skinfold are left out of the current model.
+# They are missing for 49% and 30% of women, no fill method recovers them, and the
+# model scores the same without them. Revisited in Milestone 3 (E29).
+LEFT_OUT = ["Insulin", "SkinThickness"]
+
+
+def current_features(all_columns) -> list:
+    """The inputs the current (published) model uses."""
+    return [c for c in all_columns if c not in LEFT_OUT]
+
 
 def logistic():
     """Fill gaps with the training median, rescale, fit logistic regression."""

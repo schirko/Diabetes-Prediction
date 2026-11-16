@@ -1,1 +1,1 @@
-"""Diabetes Prediction & Classification: shared project code."""
+"""Diabetes Prediction: shared project code."""

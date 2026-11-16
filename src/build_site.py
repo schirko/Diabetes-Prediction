@@ -98,6 +98,10 @@ def shell(title: str, body: str) -> str:
 <meta name="robots" content="noindex, nofollow">
 <title>{html.escape(title)} · {PROJECT_NAME}</title>
 <link rel="stylesheet" href="/scott/backbar.css">
+<link rel="icon" href="/scott/favicon.ico" sizes="32x32">
+<link rel="icon" type="image/png" sizes="16x16" href="/scott/favicon-16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/scott/favicon-32.png">
+<link rel="apple-touch-icon" href="/scott/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>{PAGE_CSS}{HtmlFormatter(style="friendly").get_style_defs(".hl")}</style></head>
@@ -229,6 +233,13 @@ def build():
     if left:
         raise SystemExit(f"Unfilled placeholders in template: {sorted(set(left))}")
     (out / "index.html").write_text(page, encoding="utf-8")
+
+    # Portfolio rule: every generated page must carry the shared back bar, favicons and no-index tag.
+    for f in out.rglob("*.html"):
+        text = f.read_text(encoding="utf-8")
+        for needle in ("sx-backbar", "/scott/backbar.css", "/scott/favicon.ico", 'content="noindex, nofollow"'):
+            if needle not in text:
+                raise SystemExit(f"{f.relative_to(out)} is missing {needle}")
 
     size = sum(f.stat().st_size for f in out.rglob("*") if f.is_file())
     print(f"Site written to {out}  ({size / 1024:.0f} KB in {sum(1 for f in out.rglob('*') if f.is_file())} files)")

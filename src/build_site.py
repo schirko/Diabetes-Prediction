@@ -1,0 +1,229 @@
+"""Build the static project site.
+
+    python -m src.build_site
+
+Reads reports/ (run `python -m src.evaluate` first) and the executed notebooks,
+and writes a self-contained site into SITE_DIR. Set SITE_DIR in a .env file at
+the project root (see .env.example); without it the site goes to ./site.
+
+Everything in the output folder is generated. Never edit it by hand: change
+site_template/index.html, the notebooks or docs/*.md and rebuild.
+"""
+import base64
+import datetime as dt
+import html
+import json
+import os
+import re
+import shutil
+
+import markdown
+import nbformat
+import pandas as pd
+from pygments import highlight
+from pygments.formatters import HtmlFormatter
+from pygments.lexers import PythonLexer
+
+from . import figures
+from .data import LABELS, ROOT
+
+PROJECT_NAME = "Diabetes Risk Predictor"
+SLUG = "diabetes-prediction"
+REPO_URL = "https://github.com/schirko/Diabetes-Prediction-Classification"
+REPORTS = ROOT / "reports"
+
+NOTEBOOK_BLURBS = {
+    "01_data_audit": "What is really in the table: the zeros that mean \"not measured\", how common diabetes is, "
+                     "and which measurements differ between the two groups.",
+    "02_honest_evaluation": "Why the original 81% can't be trusted, a leak-free pipeline, and six models compared "
+                            "on the same 50 splits.",
+    "03_thresholds_and_calibration": "Choosing a cut-off for screening, checking the probabilities, results by age, "
+                                     "and the final model.",
+}
+DOCS = ["MILESTONES", "ENHANCEMENTS_AND_BUGS", "DECISIONS"]
+
+PAGE_CSS = """
+:root { --bg:#f6f5f1; --surface:#fff; --ink:#1c211e; --muted:#4a524d; --line:#e2e0d8; --accent:#2E6A4C; --code:#f3f2ec; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:16.5px/1.6 Inter,system-ui,sans-serif; }
+.wrap { max-width:900px; margin:0 auto; padding:8px 20px 60px; }
+h1,h2,h3 { font-family:"Space Grotesk",Inter,system-ui,sans-serif; line-height:1.2; }
+h1 { font-size:34px; margin:32px 0 12px; } h2 { font-size:24px; margin:44px 0 8px; } h3 { font-size:18px; }
+a { color:var(--accent); }
+pre { background:var(--code); border:1px solid var(--line); border-radius:10px; padding:12px 14px; overflow-x:auto;
+      font:13.5px/1.5 ui-monospace,Consolas,monospace; margin:10px 0; }
+code { font:0.92em ui-monospace,Consolas,monospace; background:var(--code); padding:1px 4px; border-radius:4px; }
+pre code { background:none; padding:0; }
+.out { background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--accent); }
+.out-table { overflow-x:auto; margin:10px 0; }
+table { border-collapse:collapse; background:var(--surface); font-size:14px; }
+th,td { border:1px solid var(--line); padding:6px 11px; text-align:left; vertical-align:top; }
+.out-table td { text-align:right; font-variant-numeric:tabular-nums; }
+th { background:#f1f0eb; }
+img { max-width:100%; height:auto; border:1px solid var(--line); border-radius:10px; background:#fff; margin:8px 0; }
+.lbl { font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600; margin:16px 0 -4px; }
+footer { margin-top:48px; padding-top:16px; border-top:1px solid var(--line); color:var(--muted); font-size:14px; }
+"""
+
+
+def site_dir():
+    """SITE_DIR from the environment or the .env file, else ./site."""
+    env = ROOT / ".env"
+    if "SITE_DIR" not in os.environ and env.exists():
+        for line in env.read_text(encoding="utf-8").splitlines():
+            if line.strip().startswith("SITE_DIR="):
+                os.environ["SITE_DIR"] = line.split("=", 1)[1].strip().strip('"')
+    from pathlib import Path
+    return Path(os.environ.get("SITE_DIR", ROOT / "site"))
+
+
+def backbar() -> str:
+    """The portfolio's shared back bar. Markup only; the portfolio owns the stylesheet."""
+    return f"""<div class="sx-backbar">
+  <a class="sx-back" href="/scott/">
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+    Portfolio
+  </a>
+  <span class="sx-crumb">{PROJECT_NAME}</span>
+  <span class="sx-links"><a href="/scott/{SLUG}/">Project page</a><a href="/scott/{SLUG}/#notebooks">Notebooks</a><a href="/scott/{SLUG}/docs/MILESTONES.html">Roadmap</a></span>
+</div>"""
+
+
+def shell(title: str, body: str) -> str:
+    """Wrap a sub-page (notebook or doc) in the shared page frame."""
+    return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>{html.escape(title)} · {PROJECT_NAME}</title>
+<link rel="stylesheet" href="/scott/backbar.css">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>{PAGE_CSS}{HtmlFormatter(style="friendly").get_style_defs(".hl")}</style></head>
+<body>{backbar()}<div class="wrap">
+{body}
+<footer><a href="/scott/{SLUG}/">{PROJECT_NAME}</a> · built {dt.date.today():%B %d, %Y}</footer>
+</div></body></html>"""
+
+
+def md(text: str) -> str:
+    return markdown.markdown(text, extensions=["tables", "fenced_code"])
+
+
+def render_notebook(path) -> tuple:
+    """Turn an executed notebook into a small HTML page. Returns (title, html)."""
+    nb = nbformat.read(path, as_version=4)
+    parts, title = [], path.stem
+    fmt = HtmlFormatter(cssclass="hl", nowrap=False)
+    for cell in nb.cells:
+        if cell.cell_type == "markdown":
+            m = re.match(r"#\s+(.+)", cell.source)
+            if m and title == path.stem:
+                title = m.group(1).strip()
+            parts.append(md(cell.source))
+            continue
+        parts.append('<div class="lbl">Code</div>' + highlight(cell.source, PythonLexer(), fmt))
+        outs = []
+        for o in cell.get("outputs", []):
+            data = o.get("data", {})
+            if o.output_type == "stream":
+                outs.append(f'<pre class="out">{html.escape(o.text)}</pre>')
+            elif "image/png" in data:
+                outs.append(f'<img alt="Chart produced by the code above" src="data:image/png;base64,{data["image/png"]}">')
+            elif "text/html" in data:
+                table = re.sub(r"<style.*?</style>", "", data["text/html"], flags=re.S)
+                outs.append(f'<div class="out-table">{table}</div>')
+            elif "text/plain" in data:
+                outs.append(f'<pre class="out">{html.escape(data["text/plain"])}</pre>')
+        if outs:
+            parts.append('<div class="lbl">Result</div>' + "".join(outs))
+    return title, shell(title, "\n".join(parts))
+
+
+def pct(v, digits=0):
+    return f"{v * 100:.{digits}f}%"
+
+
+def tokens(m: dict) -> dict:
+    """Every number on the front page, formatted, straight from metrics.json."""
+    comp, ls, scr, dft = m["comparison"], m["lucky_split"], m["threshold_screening"], m["threshold_default"]
+    old = next(b for b in m["by_age"] if b["band"].startswith("45"))
+    return {
+        "project_name": PROJECT_NAME, "slug": SLUG, "repo_url": REPO_URL,
+        "built": f"{dt.date.today():%B %d, %Y}",
+        "lucky_mean": pct(ls["mean"]), "lucky_min": pct(ls["min"]), "lucky_max": pct(ls["max"]),
+        "lucky_beat": pct(ls["share_below_original"]),
+        "auc": f"{m['oof_auc']:.2f}", "auc_lo": f"{m['oof_auc_ci'][0]:.2f}", "auc_hi": f"{m['oof_auc_ci'][1]:.2f}",
+        "sens_default": pct(dft["sensitivity"]), "sens_screen": pct(scr["sensitivity"]),
+        "miss_default": pct(1 - dft["sensitivity"]), "cut": f"{scr['threshold']:.2f}",
+        "fn_default": str(dft["fn"]), "fp_default": str(dft["fp"]), "fp_screen": str(scr["fp"]),
+        "insulin_missing": pct(m["missing"]["Insulin"] / m["n"]),
+        "insulin_n": str(m["missing"]["Insulin"]), "skin_n": str(m["missing"]["SkinThickness"]),
+        "auc_lr": f"{comp['Logistic regression']['auc']:.3f}", "auc_rf": f"{comp['Random forest']['auc']:.3f}",
+        "auc_gb": f"{comp['Gradient boosting']['auc']:.3f}", "auc_dt": f"{comp['Decision tree']['auc']:.3f}",
+        "auc_glu": f"{comp['Glucose only (logistic)']['auc']:.3f}",
+        "cal_slope": f"{m['calibration']['slope']:.2f}", "spec_old": pct(old["specificity"]),
+    }
+
+
+def roadmap_rows() -> str:
+    """Pull the summary table out of docs/MILESTONES.md so the page can't disagree with it."""
+    rows = []
+    for line in (ROOT / "docs" / "MILESTONES.md").read_text(encoding="utf-8").splitlines():
+        m = re.match(r"\|\s*(M\d+)\s*\|([^|]+)\|([^|]+)\|([^|]+)\|", line)
+        if m:
+            num, name, status, question = (s.strip() for s in m.groups())
+            cls = "pill done" if status.startswith("Done") else "pill"
+            rows.append(f'<tr><td><b>{num}</b> {html.escape(name)}</td><td>{html.escape(question)}</td>'
+                        f'<td><span class="{cls}">{html.escape(status.split(" ")[0])}</span></td></tr>')
+    return "\n".join(rows)
+
+
+def build():
+    out = site_dir()
+    metrics = json.loads((REPORTS / "metrics.json").read_text())
+    model = json.loads((REPORTS / "model.json").read_text())
+    oof = pd.read_csv(REPORTS / "oof.csv")
+
+    if out.exists():
+        shutil.rmtree(out)                       # the folder is ours; rebuild it from nothing
+    (out / "notebooks").mkdir(parents=True)
+    (out / "docs").mkdir()
+    figures.save_all(out / "images")
+
+    items = []
+    for i, path in enumerate(sorted((ROOT / "notebooks").glob("*.ipynb")), 1):
+        title, page = render_notebook(path)
+        (out / "notebooks" / f"{path.stem}.html").write_text(page, encoding="utf-8")
+        title = re.sub(r"^\d+\.\s*", "", title)
+        items.append(f'  <li><a href="notebooks/{path.stem}.html"><span class="num">{i}</span>'
+                     f'<span class="nbtitle">{html.escape(title)}</span></a>'
+                     f'<span class="blurb">{html.escape(NOTEBOOK_BLURBS.get(path.stem, ""))}</span></li>')
+
+    for name in DOCS:
+        text = (ROOT / "docs" / f"{name}.md").read_text(encoding="utf-8")
+        text = re.sub(r"\]\((\w+)\.md\)", r"](\1.html)", text)      # links between the docs
+        (out / "docs" / f"{name}.html").write_text(shell(name.replace("_", " ").title(), md(text)), encoding="utf-8")
+
+    data = {
+        "model": {k: model[k] for k in ["features", "median", "mean", "scale", "coef", "intercept", "range"]},
+        "labels": LABELS,
+        "cut": metrics["threshold_screening"]["threshold"],
+        "oof": {"p": [round(float(v), 3) for v in oof["p_model"]], "y": [int(v) for v in oof["outcome"]]},
+        "check": model["check"],
+    }
+    page = (ROOT / "site_template" / "index.html").read_text(encoding="utf-8")
+    page = page.replace("__DATA__", json.dumps(data, separators=(",", ":")))
+    fill = tokens(metrics) | {"notebook_list": "\n".join(items), "roadmap_rows": roadmap_rows()}
+    for key, value in fill.items():
+        page = page.replace("{{" + key + "}}", value)
+    left = re.findall(r"\{\{\w+\}\}", page)
+    if left:
+        raise SystemExit(f"Unfilled placeholders in template: {sorted(set(left))}")
+    (out / "index.html").write_text(page, encoding="utf-8")
+
+    size = sum(f.stat().st_size for f in out.rglob("*") if f.is_file())
+    print(f"Site written to {out}  ({size / 1024:.0f} KB in {sum(1 for f in out.rglob('*') if f.is_file())} files)")
+
+
+if __name__ == "__main__":
+    build()

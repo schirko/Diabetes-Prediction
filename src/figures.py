@@ -1,0 +1,163 @@
+"""Charts shared by the notebooks and the project page.
+
+Each function returns a matplotlib Figure. build_site saves them as PNGs;
+the notebooks just display them. All of them read reports/metrics.json,
+reports/oof.csv and reports/model.json, so run `python -m src.evaluate` first.
+"""
+import json
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+from .data import LABELS, ROOT, load_data
+from .evaluate import confusion_at
+
+REPORTS = ROOT / "reports"
+GREEN, WARM, INK, MUTED, GRID = "#23855A", "#B26B16", "#1C211E", "#5F6762", "#E6E4DC"
+
+plt.rcParams.update({
+    "font.family": "DejaVu Sans", "font.size": 11, "axes.edgecolor": GRID, "axes.labelcolor": MUTED,
+    "xtick.color": MUTED, "ytick.color": MUTED, "axes.spines.top": False, "axes.spines.right": False,
+    "axes.grid": True, "grid.color": GRID, "grid.linewidth": 0.8, "axes.axisbelow": True,
+    "axes.titlesize": 13, "axes.titleweight": "bold", "axes.titlecolor": INK, "axes.titlelocation": "left",
+    "figure.dpi": 110, "savefig.dpi": 150, "savefig.bbox": "tight", "figure.facecolor": "white",
+})
+
+
+def _metrics():
+    return json.loads((REPORTS / "metrics.json").read_text())
+
+
+def missing_values():
+    """Share of each measurement recorded as an impossible zero."""
+    X, _ = load_data()
+    pct = (X.isna().mean() * 100).sort_values()
+    pct = pct[pct > 0]
+    fig, ax = plt.subplots(figsize=(7, 2.9))
+    bars = ax.barh([LABELS[c][0] for c in pct.index], pct.values, height=0.5, color=GREEN)
+    for b, v, n in zip(bars, pct.values, X.isna().sum()[pct.index]):
+        ax.text(v + 1, b.get_y() + b.get_height() / 2, f"{v:.0f}%  ({n} of {len(X)})", va="center", color=INK)
+    ax.set_xlim(0, 70)
+    ax.set_xlabel("Share of women with no real reading (%)")
+    ax.set_title("Zeros that really mean 'not measured'")
+    ax.grid(axis="y", visible=False)
+    return fig
+
+
+def lucky_split():
+    """The original recipe scored on 200 different random splits."""
+    ls = _metrics()["lucky_split"]
+    accs = np.array(ls["all"]) * 100
+    fig, ax = plt.subplots(figsize=(7, 3.4))
+    ax.hist(accs, bins=np.arange(67.5, 85.5, 1.3), color=GREEN, alpha=0.85, edgecolor="white", linewidth=2)
+    top = ax.get_ylim()[1] * 1.35          # headroom so the two labels sit above the bars
+    ax.set_ylim(0, top)
+    ax.axvline(ls["original_seed_accuracy"] * 100, color=WARM, linewidth=2)
+    ax.text(ls["original_seed_accuracy"] * 100 + 0.3, top * 0.97, "the split the original\nnotebook happened to use",
+            color=INK, va="top", fontsize=10)
+    ax.axvline(ls["mean"] * 100, color=INK, linewidth=1.2)
+    ax.text(ls["mean"] * 100 - 0.3, top * 0.97, f"average\n{ls['mean']*100:.0f}%", color=INK, va="top", ha="right",
+            fontsize=10)
+    ax.set_xlabel("Accuracy on the 20% test set (%)")
+    ax.set_ylabel("Number of splits")
+    ax.set_title("Same method, 200 different random splits")
+    ax.grid(axis="x", visible=False)
+    return fig
+
+
+def model_comparison():
+    """Mean AUC with a one-standard-deviation whisker for every candidate."""
+    comp = pd.DataFrame(_metrics()["comparison"]).T.sort_values("auc")
+    fig, ax = plt.subplots(figsize=(7, 3.3))
+    ypos = np.arange(len(comp))
+    colors = [WARM if n == "Logistic regression" else GREEN for n in comp.index]
+    ax.errorbar(comp["auc"], ypos, xerr=comp["auc_sd"], fmt="none", ecolor=MUTED, elinewidth=1.4, capsize=3)
+    ax.scatter(comp["auc"], ypos, s=70, c=colors, zorder=3, edgecolor="white", linewidth=1.5)
+    for y, (name, r) in zip(ypos, comp.iterrows()):
+        ax.text(r["auc"] + r["auc_sd"] + 0.008, y, f"{r['auc']:.3f}", va="center", color=INK, fontsize=10)
+    ax.set_yticks(ypos, comp.index)
+    ax.set_xlim(0.45, 0.92)
+    ax.set_xlabel("AUC: chance of ranking a woman with diabetes above one without (0.5 = coin flip)")
+    ax.set_title("Six models, the same 50 train/test splits")
+    ax.grid(axis="y", visible=False)
+    return fig
+
+
+def threshold_tradeoff():
+    """Cases caught and healthy women correctly cleared, for every cut-off."""
+    m = _metrics()
+    oof = pd.read_csv(REPORTS / "oof.csv")
+    y, p = oof["outcome"], oof["p_model"].to_numpy()
+    ts = np.arange(0.02, 0.99, 0.01)
+    sens = [confusion_at(y, p, t)["sensitivity"] * 100 for t in ts]
+    spec = [confusion_at(y, p, t)["specificity"] * 100 for t in ts]
+    fig, ax = plt.subplots(figsize=(7, 3.6))
+    ax.plot(ts, sens, color=GREEN, linewidth=2)
+    ax.plot(ts, spec, color=WARM, linewidth=2)
+    ax.text(0.80, 22, "Cases caught\n(sensitivity)", color=INK, fontsize=10, ha="center")
+    ax.text(0.80, 86, "Healthy women cleared\n(specificity)", color=INK, fontsize=10, ha="center", va="top")
+    for t, label in [(m["threshold_screening"]["threshold"], "screening\ncut-off"), (0.5, "default\n0.50")]:
+        ax.axvline(t, color=MUTED, linewidth=1)
+        ax.text(t + 0.01, 3, label, color=INK, fontsize=9.5)
+    ax.set_xlabel("Cut-off: flag everyone whose predicted risk is at or above this")
+    ax.set_ylabel("Percent")
+    ax.set_ylim(0, 102)
+    ax.set_title("Moving the cut-off trades missed cases for false alarms")
+    return fig
+
+
+def calibration_plot():
+    """Predicted risk against the share who actually had diabetes."""
+    cal = _metrics()["calibration"]
+    pred = [b["predicted"] * 100 for b in cal["bins"]]
+    obs = [b["observed"] * 100 for b in cal["bins"]]
+    fig, ax = plt.subplots(figsize=(4.6, 4.2))
+    ax.plot([0, 100], [0, 100], color=MUTED, linewidth=1)
+    ax.plot(pred, obs, color=GREEN, linewidth=2, marker="o", markersize=7, markeredgecolor="white",
+            markeredgewidth=1.5)
+    ax.text(62, 52, "perfect\ncalibration", color=MUTED, fontsize=9.5)
+    ax.set_xlabel("Predicted risk (%), 8 equal-sized groups")
+    ax.set_ylabel("Actually had diabetes (%)")
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 100)
+    ax.set_title("Predicted vs actual")
+    return fig
+
+
+def odds_ratios():
+    """How much each input moves the odds, per one standard deviation."""
+    model = json.loads((REPORTS / "model.json").read_text())
+    s = pd.Series(model["odds_ratio_per_sd"], index=[LABELS[f][0] for f in model["features"]]).sort_values()
+    fig, ax = plt.subplots(figsize=(7, 3.6))
+    ax.axvline(1, color=MUTED, linewidth=1)
+    ax.hlines(np.arange(len(s)), 1, s.values, color=GREEN, linewidth=2)
+    ax.scatter(s.values, np.arange(len(s)), s=70, color=GREEN, zorder=3, edgecolor="white", linewidth=1.5)
+    for i, v in enumerate(s.values):
+        ax.text(v + 0.06 if v >= 1 else v - 0.06, i, f"×{v:.2f}", va="center", ha="left" if v >= 1 else "right",
+                color=INK, fontsize=10)
+    ax.set_yticks(np.arange(len(s)), s.index)
+    ax.set_xlim(0.6, 3.5)
+    ax.set_xlabel("Odds multiplier for a one-standard-deviation increase (1 = no effect)")
+    ax.set_title("What the final model leans on")
+    ax.grid(axis="y", visible=False)
+    return fig
+
+
+ALL = {
+    "missing": missing_values,
+    "lucky_split": lucky_split,
+    "model_comparison": model_comparison,
+    "threshold": threshold_tradeoff,
+    "calibration": calibration_plot,
+    "odds": odds_ratios,
+}
+
+
+def save_all(out_dir):
+    """Write every chart as a PNG into out_dir."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for name, make in ALL.items():
+        fig = make()
+        fig.savefig(out_dir / f"{name}.png")
+        plt.close(fig)

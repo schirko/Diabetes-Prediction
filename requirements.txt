@@ -1,0 +1,15 @@
+# Modeling
+numpy
+pandas
+scikit-learn
+matplotlib
+# Notebooks (run inside PyCharm, or all at once with: python -m src.run_notebooks)
+jupyter
+ipykernel
+nbformat
+nbclient
+# Site build
+markdown
+pygments
+# Tests
+pytest

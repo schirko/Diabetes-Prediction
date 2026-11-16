@@ -1,0 +1,12 @@
+.venv/
+.idea/
+.env
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+# Local build of the site (the published copy lives in the Schirko repo)
+site/
+# Old notebook copies and unrelated files, kept locally only
+archive/
+# Personal notes
+notes/

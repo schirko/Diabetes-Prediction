@@ -1,0 +1,362 @@
+<!doctype html>
+<!-- Template for the project page. Edit this file, then run: python -m src.build_site
+     Double-curly tokens are filled from reports/metrics.json; __DATA__ becomes the model as JSON. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>{{project_name}}</title>
+<meta name="description" content="A diabetes risk model rebuilt with honest evaluation: the original 81% accuracy was a lucky split. Interactive model, notebooks and code.">
+<link rel="stylesheet" href="/scott/backbar.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f6f5f1; --surface: #ffffff; --ink: #1c211e; --muted: #4a524d; --line: #e2e0d8; --track: #eceae3;
+  --accent: #2E6A4C; --warm: #B26B16; --up: #B26B16; --down: #23855A; --neutral: #8b938d;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #151a17; --surface: #1d2420; --ink: #eceae4; --muted: #b0b8b2; --line: #34403a; --track: #2a332e;
+          --accent: #6fc79a; --warm: #e0a85a; --up: #D0903C; --down: #3FAE7C; --neutral: #7d8780; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 Inter, system-ui, sans-serif; }
+a { color: var(--accent); }
+.wrap { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+header { padding: 52px 0 24px; }
+.kicker { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+h1, h2, h3 { font-family: "Space Grotesk", Inter, system-ui, sans-serif; }
+h1 { font-size: clamp(34px, 6vw, 54px); line-height: 1.08; margin: 10px 0 18px; }
+h2 { font-size: 28px; margin: 56px 0 12px; }
+h3 { font-size: 18px; margin: 0 0 4px; }
+.lede { font-size: 19px; color: var(--muted); max-width: 760px; margin: 0; }
+.links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.btn { display: inline-block; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line);
+       background: var(--surface); color: var(--ink); text-decoration: none; font-size: 15px; font-weight: 500; cursor: pointer; font-family: inherit; }
+.btn.primary { background: #2E6A4C; border-color: #2E6A4C; color: #fff; font-weight: 600; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin: 28px 0 8px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 18px 16px; }
+.stat .v { font-family: "Space Grotesk", Inter, sans-serif; font-size: 36px; font-weight: 700; line-height: 1; color: var(--accent); }
+.stat .v.warm { color: var(--warm); }
+.stat .l { color: var(--muted); font-size: 14.5px; margin-top: 8px; line-height: 1.4; }
+figure { margin: 24px 0; max-width: 780px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+figure img { width: 100%; height: auto; display: block; }
+figcaption { color: #4a524d; font-size: 14px; padding: 8px 6px 2px; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.pair figure { margin: 0; }
+.findings { padding-left: 0; list-style: none; margin: 0; }
+.findings li { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+               border-radius: 10px; padding: 14px 18px; margin: 12px 0; }
+.findings b { display: block; margin-bottom: 2px; }
+.nbs { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.nbs li { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+.nbs a { text-decoration: none; color: var(--ink); font-weight: 600; display: flex; gap: 12px; align-items: baseline; }
+.nbs a:hover .nbtitle { color: var(--accent); text-decoration: underline; }
+.nbs .num { color: var(--accent); min-width: 24px; }
+.nbs .blurb { display: block; color: var(--muted); font-size: 15px; margin-left: 36px; }
+.note { color: var(--muted); font-size: 15.5px; }
+table.road { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; font-size: 15px; }
+table.road th, table.road td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+table.road th { font-size: 12.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+table.road tr:last-child td { border-bottom: 0; }
+.pill { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.pill.done { background: #2E6A4C; border-color: #2E6A4C; color: #fff; }
+footer { margin: 64px 0 40px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14.5px; }
+
+/* ---- interactive model ---- */
+.app { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+.presets { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+.presets .btn { padding: 6px 13px; font-size: 14px; }
+.field { padding: 11px 0 9px; border-bottom: 1px solid var(--line); }
+.field:last-child { border-bottom: 0; padding-bottom: 0; }
+.field .top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.field label.name { font-weight: 600; font-size: 15px; }
+.field .val { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 15px; white-space: nowrap; }
+.field .val small { color: var(--muted); font-weight: 400; }
+.field input[type=range] { width: 100%; margin: 6px 0 0; accent-color: #2E6A4C; }
+.field .sub { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); }
+.field .miss { font-size: 13.5px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center; margin-top: 4px; cursor: pointer; }
+.field.off input[type=range] { opacity: .35; }
+.risk { font-family: "Space Grotesk", Inter, sans-serif; font-size: 68px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.risk small { font-size: 26px; font-weight: 500; color: var(--muted); }
+.plain { color: var(--muted); font-size: 15px; margin: 8px 0 14px; }
+.meter { position: relative; height: 14px; border-radius: 7px; background: var(--track); margin: 26px 0 8px; }
+.meter .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 7px; background: var(--neutral); }
+.meter .cut { position: absolute; top: -7px; bottom: -7px; width: 2px; background: var(--ink); }
+.meter .cut span { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); font-size: 11.5px; color: var(--muted); white-space: nowrap; padding-bottom: 1px; }
+.scale { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+.verdict { display: flex; gap: 10px; align-items: flex-start; margin: 14px 0 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 15px; }
+.verdict svg { flex: 0 0 20px; margin-top: 2px; }
+.contrib { margin-top: 18px; }
+.contrib .legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); margin: 4px 0 8px; }
+.contrib .legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.crow { display: grid; grid-template-columns: 118px minmax(0, 1fr) 52px; gap: 8px; align-items: center; font-size: 13.5px; padding: 3px 0; border-radius: 6px; }
+.crow:hover { background: var(--track); }
+.crow .cn { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crow .cv { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.cbar { position: relative; height: 16px; }
+.cbar::before { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--line); }
+.cbar i { position: absolute; top: 2px; height: 12px; }
+.cbar i.up { left: 50%; background: var(--up); border-radius: 0 4px 4px 0; }
+.cbar i.down { right: 50%; background: var(--down); border-radius: 4px 0 0 4px; }
+.cutbox { margin-top: 18px; }
+.cutbox input[type=range] { width: 100%; accent-color: #2E6A4C; }
+.split { display: flex; height: 22px; gap: 2px; margin: 4px 0 2px; }
+.split i { display: block; height: 100%; }
+.split i:first-child { border-radius: 4px 0 0 4px; } .split i:last-child { border-radius: 0 4px 4px 0; }
+.split .a { background: var(--down); } .split .b { background: var(--up); } .split .c { background: var(--neutral); }
+.splitlab { display: flex; justify-content: space-between; font-size: 13.5px; color: var(--muted); margin-bottom: 10px; }
+.splitlab b { color: var(--ink); }
+.cutrow { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
+.warnbox { border: 1px solid var(--line); border-left: 4px solid var(--warm); border-radius: 10px; background: var(--surface); padding: 12px 16px; font-size: 15px; margin-top: 16px; }
+@media (max-width: 780px) { .app { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { body { font-size: 16px; } .stat .v { font-size: 30px; } .nbs .blurb { margin-left: 0; } .risk { font-size: 56px; } }
+</style>
+</head>
+<body>
+<div class="sx-backbar">
+  <a class="sx-back" href="/scott/">
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+    Portfolio
+  </a>
+  <span class="sx-crumb">{{project_name}}</span>
+  <span class="sx-links"><a href="/scott/{{slug}}/#try">Try the model</a><a href="/scott/{{slug}}/#notebooks">Notebooks</a><a href="/scott/{{slug}}/docs/MILESTONES.html">Roadmap</a></span>
+</div>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Machine learning project · Pima diabetes data, 768 women</div>
+  <h1>{{project_name}}</h1>
+  <p class="lede">My college notebook on this data reported 81% accuracy. Rebuilding it properly showed that number was
+  a lucky split: the same method averages {{lucky_mean}} and misses {{miss_default}} of the women who have diabetes.
+  This project is the honest version, with a model you can try below.</p>
+  <div class="links">
+    <a class="btn primary" href="#try">Try the model</a>
+    <a class="btn" href="#findings">Key findings</a>
+    <a class="btn" href="#notebooks">Read the analysis</a>
+    <a class="btn" href="{{repo_url}}">View code on GitHub</a>
+  </div>
+</header>
+
+<section class="stats" aria-label="Headline numbers">
+  <div class="stat"><div class="v warm">81% &rarr; {{lucky_mean}}</div><div class="l">Accuracy of the original method: one lucky split vs the average of 200 splits</div></div>
+  <div class="stat"><div class="v">{{auc}}</div><div class="l">AUC on women the model never saw (95% interval {{auc_lo}} to {{auc_hi}})</div></div>
+  <div class="stat"><div class="v">{{sens_default}} &rarr; {{sens_screen}}</div><div class="l">Cases caught, after moving the cut-off from 0.50 to {{cut}} for screening</div></div>
+  <div class="stat"><div class="v warm">{{insulin_missing}}</div><div class="l">of insulin readings were zeros that really meant "not measured"</div></div>
+</section>
+
+<h2 id="try">Try the model</h2>
+<p class="note">Move the sliders to describe a woman. The estimate is the model's probability that she is diagnosed with
+diabetes within five years. The model runs in your browser, and nothing you enter is sent anywhere.</p>
+<div class="presets" role="group" aria-label="Example women">
+  <button class="btn" data-preset="typical">Typical woman in the data</button>
+  <button class="btn" data-preset="low">Lower-risk example</button>
+  <button class="btn" data-preset="high">Higher-risk example</button>
+</div>
+
+<div class="app">
+  <div class="panel" id="fields" aria-label="Measurements"></div>
+  <div class="panel">
+    <div aria-live="polite">
+      <div class="risk"><span id="risk">0</span><small>%</small></div>
+      <p class="plain" id="plain"></p>
+      <div class="meter" aria-hidden="true"><div class="fill" id="fill"></div><div class="cut" id="cutmark"><span id="cutlab"></span></div></div>
+      <div class="scale" aria-hidden="true"><span>0%</span><span>50%</span><span>100%</span></div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+    <div class="contrib">
+      <h3>What moves this estimate</h3>
+      <div class="legend"><span><i style="background:var(--down)"></i>lowers the odds</span><span><i style="background:var(--up)"></i>raises the odds</span></div>
+      <div id="contrib"></div>
+      <p class="note" style="font-size:13.5px;margin:8px 0 0">Each bar compares this woman with the average woman in the data. "×2.0" means that measurement doubles her odds; "×0.5" halves them.</p>
+    </div>
+  </div>
+</div>
+
+<div class="panel cutbox">
+  <div class="cutrow">
+    <h3>Where should the cut-off go?</h3>
+    <span><button class="btn" style="padding:4px 12px;font-size:13.5px" data-cut="{{cut}}">Screening {{cut}}</button>
+    <button class="btn" style="padding:4px 12px;font-size:13.5px" data-cut="0.50">Default 0.50</button></span>
+  </div>
+  <p class="note" style="margin:4px 0 10px">Flag every woman whose estimate is at or above <b id="cutval"></b>. The counts are all 768 women, each scored by a model that had not seen her.</p>
+  <input type="range" id="cut" min="0.05" max="0.90" step="0.01" aria-label="Cut-off">
+  <div class="splitlab" style="margin-top:12px"><span><b id="tp"></b> of 268 women with diabetes caught</span><span><b id="fn"></b> missed</span></div>
+  <div class="split" id="barcase"></div>
+  <div class="splitlab" style="margin-top:12px"><span><b id="tn"></b> of 500 women without diabetes cleared</span><span><b id="fp"></b> false alarms</span></div>
+  <div class="split" id="barwell"></div>
+</div>
+
+<div class="warnbox"><b>This is not a medical tool.</b> The data is 768 women of Pima heritage aged 21 and over, collected near
+Phoenix, Arizona and published in 1988. The model has not been tested on anyone else. It is here to show how a risk model is
+built and judged, not to assess anyone's health.</div>
+
+<h2 id="findings">Key findings</h2>
+<ul class="findings">
+  <li><b>The original 81% was luck.</b> Repeating the original method on 200 random train/test splits gives anything from
+  {{lucky_min}} to {{lucky_max}}, averaging {{lucky_mean}}. The split in the college notebook beat {{lucky_beat}} of the others.
+  Always answering "no diabetes" scores 65%.</li>
+  <li><b>Half the insulin column was never measured.</b> {{insulin_n}} of 768 insulin values and {{skin_n}} skinfold values
+  are zeros standing in for "missing". The original filled them using the whole table, which leaks test data into training.
+  Here the fill is learned inside each training fold.</li>
+  <li><b>The simplest model ties for best.</b> On the same 50 cross-validation splits, logistic regression scores AUC {{auc_lr}}
+  and a random forest {{auc_rf}}, a gap one tenth the size of the wobble between splits. Gradient boosting ({{auc_gb}}) and a
+  decision tree ({{auc_dt}}) are behind. Glucose alone gets {{auc_glu}}.</li>
+  <li><b>Accuracy hid the real problem.</b> At the standard 0.50 cut-off the model misses {{fn_default}} of 268 women with diabetes.
+  Moving the cut-off to {{cut}} catches {{sens_screen}} of them, at the price of {{fp_screen}} false alarms instead of {{fp_default}}.</li>
+  <li><b>The probabilities can be believed.</b> Predicted risk tracks what happened (calibration slope {{cal_slope}}, ideal 1.00),
+  so "30%" does mean roughly 3 in 10, for women like these.</li>
+  <li><b>It works worst for older women.</b> With one cut-off for everyone, the model clears only {{spec_old}} of healthy women aged
+  45 and over. It flags nearly all of them. That is the main thing the next milestones set out to fix.</li>
+</ul>
+
+<figure>
+  <img src="images/lucky_split.png" alt="Histogram of test accuracy across 200 random splits of the original method, ranging from 68% to 84% with an average of 77%. The split used in the original notebook sits near the top at 81%.">
+  <figcaption>The original method, 200 times. Only the random split changes.</figcaption>
+</figure>
+<figure>
+  <img src="images/model_comparison.png" alt="Dot chart of AUC for six models. Random forest 0.838, logistic regression 0.835, gradient boosting 0.823, decision tree 0.807, glucose only 0.791, always predict no diabetes 0.500.">
+  <figcaption>Six models on the same 50 splits. Whiskers show the split-to-split wobble.</figcaption>
+</figure>
+<figure>
+  <img src="images/threshold.png" alt="Line chart of sensitivity falling and specificity rising as the cut-off increases from 0 to 1, with the screening cut-off and the default 0.50 marked.">
+  <figcaption>Every cut-off is a trade between missed cases and false alarms.</figcaption>
+</figure>
+<figure>
+  <img src="images/odds.png" alt="Chart of odds multipliers per standard deviation. Glucose 3.11, BMI 1.89, pregnancies 1.51, family-history score 1.33, age 1.17, skinfold 1.04, insulin 0.91, blood pressure 0.90.">
+  <figcaption>Glucose does most of the work.</figcaption>
+</figure>
+<figure>
+  <img src="images/missing.png" alt="Bar chart of missing readings: insulin 49%, skinfold 30%, blood pressure 5%, BMI 1%, glucose 1%.">
+  <figcaption>The gaps the original analysis didn't see.</figcaption>
+</figure>
+
+<h2 id="notebooks">The analysis, step by step</h2>
+<p class="note">Each notebook shows the code, its result, how to read it and what it means. They are re-run from scratch
+by one command, so the outputs always match the code.</p>
+<ul class="nbs">
+{{notebook_list}}
+</ul>
+
+<h2 id="roadmap">Where it goes next</h2>
+<p class="note">The project is planned as ten milestones, written before the work. Each one answers a specific question.</p>
+<table class="road">
+<tr><th>Milestone</th><th>Question</th><th>Status</th></tr>
+{{roadmap_rows}}
+</table>
+<p style="margin-top:14px"><a href="docs/MILESTONES.html">Full roadmap</a> ·
+<a href="docs/ENHANCEMENTS_AND_BUGS.html">Enhancements and bugs</a> (including the nine bugs found in the original notebook) ·
+<a href="docs/DECISIONS.html">Decisions</a></p>
+
+<footer>
+  <a href="/scott/">Scott Schirkofsky</a> · Page built {{built}}
+</footer>
+</div>
+
+<script>
+const D = __DATA__;
+const M = D.model, F = M.features;
+const SPEC = {
+  Pregnancies: {step: 1, dec: 0}, Glucose: {step: 1, dec: 0, miss: 1}, BloodPressure: {step: 1, dec: 0, miss: 1},
+  SkinThickness: {step: 1, dec: 0, miss: 1}, Insulin: {step: 1, dec: 0, miss: 1}, BMI: {step: 0.1, dec: 1, miss: 1},
+  DiabetesPedigreeFunction: {step: 0.01, dec: 2}, Age: {step: 1, dec: 0}
+};
+const SHORT = {Pregnancies: "Pregnancies", Glucose: "Glucose", BloodPressure: "Blood pressure", SkinThickness: "Skinfold",
+  Insulin: "Insulin", BMI: "BMI", DiabetesPedigreeFunction: "Family history", Age: "Age"};
+const PRESETS = {
+  typical: M.median.map(v => v),
+  low: [1, 89, 66, 23, 94, 28.1, 0.17, 21],
+  high: [8, 183, 64, null, null, 33.3, 0.67, 42]
+};
+const state = {v: M.median.slice(), miss: F.map(() => false), cut: D.cut};
+
+// The whole model: fill a missing value with the median, standardise, weight, add up, squash to 0..1.
+function predict(values, missing) {
+  let z = M.intercept; const parts = [];
+  F.forEach((f, i) => {
+    const x = missing[i] ? M.median[i] : values[i];
+    const c = M.coef[i] * (x - M.mean[i]) / M.scale[i];
+    parts.push(c); z += c;
+  });
+  return {p: 1 / (1 + Math.exp(-z)), parts};
+}
+
+function buildFields() {
+  const host = document.getElementById("fields");
+  F.forEach((f, i) => {
+    const s = SPEC[f], [lo, hi] = M.range[f], [name, unit] = D.labels[f];
+    const el = document.createElement("div"); el.className = "field"; el.id = "f" + i;
+    el.innerHTML = `<div class="top"><label class="name" for="r${i}">${name}</label><span class="val" id="v${i}"></span></div>
+      <input type="range" id="r${i}" min="${lo}" max="${hi}" step="${s.step}">
+      <div class="sub"><span>${lo}</span><span>typical ${M.median[i].toFixed(s.dec)} ${unit === "count" || unit === "score" ? "" : unit}</span><span>${hi}</span></div>` +
+      (s.miss ? `<label class="miss"><input type="checkbox" id="m${i}"> Not measured (the model assumes a typical value)</label>` : "");
+    host.appendChild(el);
+    el.querySelector("#r" + i).addEventListener("input", e => { state.v[i] = +e.target.value; render(); });
+    if (s.miss) el.querySelector("#m" + i).addEventListener("change", e => { state.miss[i] = e.target.checked; render(); });
+  });
+}
+
+function setPreset(key) {
+  PRESETS[key].forEach((v, i) => { state.miss[i] = v === null; state.v[i] = v === null ? M.median[i] : v; });
+  render();
+}
+
+const ICON_FLAG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>';
+const ICON_OK = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>';
+
+function render() {
+  const {p, parts} = predict(state.v, state.miss);
+  F.forEach((f, i) => {
+    const s = SPEC[f], unit = D.labels[f][1];
+    document.getElementById("r" + i).value = state.v[i];
+    document.getElementById("r" + i).disabled = state.miss[i];
+    document.getElementById("f" + i).classList.toggle("off", state.miss[i]);
+    if (s.miss) document.getElementById("m" + i).checked = state.miss[i];
+    document.getElementById("v" + i).innerHTML = state.miss[i] ? "<small>not measured</small>"
+      : `${state.v[i].toFixed(s.dec)} <small>${unit === "count" || unit === "score" ? "" : unit}</small>`;
+  });
+  const pct = Math.round(p * 100);
+  document.getElementById("risk").textContent = pct;
+  document.getElementById("plain").textContent = `The model estimates that about ${pct} of every 100 women with measurements like these are diagnosed within five years. Across all 768 women in the data, 35 of every 100 were.`;
+  document.getElementById("fill").style.width = (p * 100) + "%";
+  document.getElementById("cutmark").style.left = (state.cut * 100) + "%";
+  document.getElementById("cutlab").textContent = "cut-off " + state.cut.toFixed(2);
+  const flagged = p >= state.cut;
+  document.getElementById("verdict").innerHTML = (flagged ? ICON_FLAG : ICON_OK) + `<span><b>${flagged ? "At or above the cut-off." : "Below the cut-off."}</b> ${flagged
+    ? "In a screening programme she would be sent for a follow-up blood test."
+    : "In a screening programme she would not be flagged."}</span>`;
+
+  const max = Math.max(1.2, ...parts.map(Math.abs));
+  document.getElementById("contrib").innerHTML = F.map((f, i) => ({f, i, c: parts[i]}))
+    .sort((a, b) => Math.abs(b.c) - Math.abs(a.c))
+    .map(({f, i, c}) => {
+      const w = Math.abs(c) / max * 50, mult = Math.exp(c);
+      const why = state.miss[i] ? "not measured, so it has no effect" : `${state.v[i].toFixed(SPEC[f].dec)} vs an average of ${M.mean[i].toFixed(SPEC[f].dec)}`;
+      return `<div class="crow" title="${SHORT[f]}: ${why}. Odds ×${mult.toFixed(2)}"><span class="cn">${SHORT[f]}</span>
+        <span class="cbar"><i class="${c >= 0 ? "up" : "down"}" style="width:${w}%"></i></span><span class="cv">×${mult.toFixed(2)}</span></div>`;
+    }).join("");
+
+  let tp = 0, fp = 0, fn = 0, tn = 0;
+  D.oof.p.forEach((q, k) => { const y = D.oof.y[k]; if (q >= state.cut) { y ? tp++ : fp++; } else { y ? fn++ : tn++; } });
+  document.getElementById("cut").value = state.cut;
+  document.getElementById("cutval").textContent = state.cut.toFixed(2) + ` (${Math.round(state.cut * 100)}%)`;
+  document.getElementById("tp").textContent = `${tp} (${Math.round(tp / (tp + fn) * 100)}%)`;
+  document.getElementById("fn").textContent = fn;
+  document.getElementById("tn").textContent = `${tn} (${Math.round(tn / (tn + fp) * 100)}%)`;
+  document.getElementById("fp").textContent = fp;
+  document.getElementById("barcase").innerHTML = `<i class="a" style="flex:${tp}" title="${tp} caught"></i><i class="b" style="flex:${fn}" title="${fn} missed"></i>`;
+  document.getElementById("barwell").innerHTML = `<i class="a" style="flex:${tn}" title="${tn} cleared"></i><i class="c" style="flex:${fp}" title="${fp} false alarms"></i>`;
+}
+
+buildFields();
+document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => setPreset(b.dataset.preset)));
+document.querySelectorAll("[data-cut]").forEach(b => b.addEventListener("click", () => { state.cut = +b.dataset.cut; render(); }));
+document.getElementById("cut").addEventListener("input", e => { state.cut = +e.target.value; render(); });
+render();
+window.__predict = predict;   // used by the automated check that compares this page with scikit-learn
+</script>
+</body>
+</html>

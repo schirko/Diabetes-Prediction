@@ -5,7 +5,7 @@
 Writes:
     reports/metrics.json   every number quoted on the project page
     reports/oof.csv        one out-of-fold probability per woman
-    reports/model.json     the current model in a form JavaScript can run
+    reports/model.json     the current model as lookup tables JavaScript can run
 """
 import json
 import warnings
@@ -204,6 +204,42 @@ def milestone2(X, y, threshold_m1: float) -> dict:
     }
 
 
+def milestone3(X, y, Xc) -> dict:
+    """Everything notebook 05 and the page quote about curved effects (E10, E11, E29, B10)."""
+    from . import nonlinear as nl              # imported here: nonlinear itself imports this module
+    from sklearn.model_selection import RepeatedStratifiedKFold
+    table, probs = nl.compare(Xc, y)
+    fresh = RepeatedStratifiedKFold(n_splits=5, n_repeats=10, random_state=2026)
+    check, _ = nl.compare(Xc, y, names=[nl.BASELINE, "Curve for age only", nl.CURVES], cv=fresh)
+    older, young = (X["Age"] >= 45).to_numpy(), (X["Age"] < 30).to_numpy()
+    b10 = {}
+    for key, name in [("straight", nl.BASELINE), ("curves", nl.CURVES)]:
+        p = probs[name]
+        cut = pick_threshold(y, p)
+        b10[key] = {"cut": cut, "all": confusion_at(y, p, cut),
+                    "age_45plus": confusion_at(y[older].to_numpy(), p[older], cut),
+                    "under_30": confusion_at(y[young].to_numpy(), p[young], cut)}   # B12
+    b10["band_gain_ci"] = nl.bootstrap_band_gain(y, probs[nl.CURVES], probs[nl.BASELINE], older)
+    age_fit = pd.DataFrame({
+        "women": nl.calibration_by_age(X, y, probs[nl.BASELINE])["women"],
+        "actual": nl.calibration_by_age(X, y, probs[nl.BASELINE])["actual"],
+        "straight": nl.calibration_by_age(X, y, probs[nl.BASELINE])["predicted"],
+        "curves": nl.calibration_by_age(X, y, probs[nl.CURVES])["predicted"],
+    })
+    straight = nl.export_additive(nl.lr_pipeline(), Xc, y)
+    curves = nl.export_curves_model(Xc, y)
+    shapes = {f: {"grid": curves["grid"][f], "curves": curves["contribution"][f],
+                  "straight": straight["contribution"][f]} for f in nl.CURVED_INPUTS}
+    return {
+        "comparison": json.loads(table.to_json(orient="index")),
+        "fresh_split_check": json.loads(check.to_json(orient="index")),
+        "b10": b10,
+        "age_fit": json.loads(age_fit.to_json(orient="index")),
+        "shapes": shapes,
+        "insulin": json.loads(nl.insulin_retest(X, y).to_json(orient="index")),
+    }, probs[nl.BASELINE]
+
+
 def main():
     warnings.filterwarnings("ignore")
     REPORTS.mkdir(exist_ok=True)
@@ -218,8 +254,14 @@ def main():
     # Rows with no glucose reading (5) are treated as not flagged.
     rule = confusion_at(y, X["Glucose"].fillna(0).to_numpy(), 140)
 
+    from . import nonlinear as nl
     Xc = X[current_features(FEATURES)]          # the current model's inputs (D09)
-    p_current = out_of_fold(logistic(), Xc, y)
+    p_current = out_of_fold(nl.curves_model(), Xc, y)   # the current model: curves (D11)
+    m3, p_straight6 = milestone3(X, y, Xc)
+
+    # The model set to raise about as many false alarms as the glucose >= 140 rule: how many more cases does it find?
+    rule_cut = min(np.arange(0.30, 0.80, 0.01), key=lambda t: abs(confusion_at(y, p_current, t)["fp"] - rule["fp"]))
+    vs_rule = confusion_at(y, p_current, round(float(rule_cut), 2))
 
     metrics = {
         "n": int(len(y)), "cases": int(y.sum()), "prevalence": float(y.mean()),
@@ -239,13 +281,16 @@ def main():
         "by_age": by_age(X, y, p, threshold),
         # --- Milestone 2: missing-data study (notebook 04)
         "m2": milestone2(X, y, threshold),
+        # --- Milestone 3: curved effects, insulin re-test, B10 (notebook 05)
+        "m3": m3,
         # --- The current model: what the web page runs and reports
-        "current": summarise(Xc, y, p_current),
+        "current": summarise(Xc, y, p_current) | {"vs_glucose_rule": vs_rule},
     }
     (REPORTS / "metrics.json").write_text(json.dumps(metrics, indent=1))
     pd.DataFrame({"outcome": y, "p_model": p.round(6), "p_glucose_only": p_glucose.round(6),
-                  "p_current": p_current.round(6)}).to_csv(REPORTS / "oof.csv", index=False)
-    (REPORTS / "model.json").write_text(json.dumps(export_model(Xc, y), indent=1))
+                  "p_straight6": p_straight6.round(6), "p_current": p_current.round(6)}).to_csv(
+        REPORTS / "oof.csv", index=False)
+    (REPORTS / "model.json").write_text(json.dumps(nl.export_curves_model(Xc, y), indent=1))
 
     print(table[["auc", "auc_sd", "avg_precision", "brier", "accuracy", "sensitivity"]].round(3).to_string())
     print(f"\nOut-of-fold AUC {metrics['oof_auc']:.3f}, 95% interval "
@@ -259,6 +304,8 @@ def main():
     print(f"\nCurrent model ({len(cur['features'])} inputs): AUC {cur['oof_auc']:.3f}, "
           f"screening cut-off {cur['threshold_screening']['threshold']:.2f}")
     print(pd.DataFrame(metrics["m2"]["strategies"]).T.round(4).to_string())
+    print(pd.DataFrame(m3["comparison"]).T.round(3).to_string())
+    print(json.dumps(m3["b10"], indent=1))
 
 
 if __name__ == "__main__":

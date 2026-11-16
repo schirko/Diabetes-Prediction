@@ -67,6 +67,38 @@ table.road th { font-size: 12.5px; text-transform: uppercase; letter-spacing: .0
 table.road tr:last-child td { border-bottom: 0; }
 .pill { display: inline-block; font-size: 12.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
 .pill.done { background: #2E6A4C; border-color: #2E6A4C; color: #fff; }
+/* how it works */
+.steps { list-style: none; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; counter-reset: step; }
+.steps li { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 12px; position: relative; font-size: 14.5px; line-height: 1.45; color: var(--muted); }
+.steps li b { display: block; color: var(--ink); font-size: 15.5px; margin-bottom: 4px; }
+.steps li::before { counter-increment: step; content: counter(step); display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: #2E6A4C; color: #fff; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+.steps li:not(:last-child)::after { content: "\2192"; position: absolute; right: -11px; top: 16px; color: var(--muted); font-size: 15px; background: var(--bg); line-height: 1; }
+@media (max-width: 860px) { .steps { grid-template-columns: 1fr 1fr; } .steps li::after { display: none; } }
+@media (max-width: 520px) { .steps { grid-template-columns: 1fr; } }
+/* story */
+.story { margin: 34px 0 0; }
+.story h3 { font-size: 21px; margin: 0 0 6px; }
+.story p { margin: 6px 0; max-width: 820px; }
+.howto { font-size: 14.5px; color: var(--muted); max-width: 820px; }
+.howto b { color: var(--ink); }
+/* 100 women */
+.dots { display: grid; grid-template-columns: repeat(20, 1fr); gap: 5px; max-width: 520px; margin: 12px 0 10px; }
+.dots i { aspect-ratio: 1; border-radius: 50%; box-sizing: border-box; }
+.dots .tp { background: var(--down); }
+.dots .fn { background: var(--up); }
+.dots .fp { border: 2.5px solid var(--up); }
+.dots .tn { border: 2.5px solid var(--neutral); }
+.dotkey { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 22px; font-size: 14.5px; color: var(--muted); max-width: 640px; }
+@media (max-width: 520px) { .dotkey { grid-template-columns: 1fr; } }
+.dotkey span { display: flex; align-items: center; gap: 8px; }
+.dotkey b { color: var(--ink); font-variant-numeric: tabular-nums; min-width: 22px; text-align: right; }
+.dotkey i { flex: 0 0 13px; height: 13px; border-radius: 50%; box-sizing: border-box; }
+.reading { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-top: 14px; }
+.reading a { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; text-decoration: none; color: var(--muted); font-size: 14.5px; line-height: 1.45; }
+.reading a b { display: block; color: var(--ink); font-size: 16px; margin-bottom: 3px; }
+.reading a span { color: var(--accent); font-weight: 600; font-size: 13px; }
+.reading a:hover b { color: var(--accent); text-decoration: underline; }
+abbr[title] { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
 footer { margin: 64px 0 40px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14.5px; }
 
 /* ---- interactive model ---- */
@@ -127,35 +159,47 @@ footer { margin: 64px 0 40px; padding-top: 20px; border-top: 1px solid var(--lin
     Portfolio
   </a>
   <span class="sx-crumb">{{project_name}}</span>
-  <span class="sx-links"><a href="/scott/{{slug}}/#try">Try the model</a><a href="/scott/{{slug}}/#notebooks">Notebooks</a><a href="/scott/{{slug}}/docs/MILESTONES.html">Roadmap</a></span>
+  <span class="sx-links"><a href="/scott/{{slug}}/#try">Try the model</a><a href="/scott/{{slug}}/docs/OVERVIEW.html">Start here</a><a href="/scott/{{slug}}/docs/FINDINGS.html">Findings</a><a href="/scott/{{slug}}/docs/GLOSSARY.html">Glossary</a></span>
 </div>
 <div class="wrap">
 
 <header>
   <div class="kicker">Machine learning project · Pima diabetes data, 768 women</div>
   <h1>{{project_name}}</h1>
-  <p class="lede">My college notebook on this data reported 81% accuracy. Rebuilding it properly showed that number was
-  a lucky split: the same method averages {{lucky_mean}}, and at the standard cut-off a fairly evaluated model still
-  misses {{miss_default}} of the women who have diabetes. This project is the honest version, with a model you can try below.</p>
+  <p class="lede">Can six routine measurements tell which women are likely to develop diabetes in the next five years,
+  well enough to decide who should get a follow-up blood test? This started as a college project that claimed 81%
+  accuracy. Rebuilt and tested fairly, that turned out to be luck. This is the honest version: a model you can try,
+  what it gets right and wrong, and how it was built.</p>
   <div class="links">
     <a class="btn primary" href="#try">Try the model</a>
-    <a class="btn" href="#findings">Key findings</a>
-    <a class="btn" href="#notebooks">Read the analysis</a>
+    <a class="btn" href="docs/OVERVIEW.html">Start here: 5-minute read</a>
+    <a class="btn" href="#findings">What we found</a>
     <a class="btn" href="{{repo_url}}">View code on GitHub</a>
   </div>
 </header>
 
 <section class="stats" aria-label="Headline numbers">
-  <div class="stat"><div class="v warm">81% &rarr; {{lucky_mean}}</div><div class="l">Accuracy of the original method: one lucky split vs the average of 200 splits</div></div>
-  <div class="stat"><div class="v">{{auc}}</div><div class="l">AUC on women the model never saw (95% interval {{auc_lo}} to {{auc_hi}})</div></div>
-  <div class="stat"><div class="v">{{sens_default}} &rarr; {{sens_screen}}</div><div class="l">Cases caught, after moving the cut-off from 0.50 to {{cut}} for screening</div></div>
-  <div class="stat"><div class="v warm">{{insulin_missing}}</div><div class="l">of insulin readings were zeros that really meant "not measured"</div></div>
+  <div class="stat"><div class="v">{{p100_tp}} of {{p100_pos}}</div><div class="l">Out of every 100 women screened, {{p100_pos}} will develop diabetes. The model flags {{p100_tp}} of them for a test.</div></div>
+  <div class="stat"><div class="v warm">{{p100_fp}} of {{p100_neg}}</div><div class="l">Healthy women in the same 100 sent for a test they didn't need: the price of catching more cases.</div></div>
+  <div class="stat"><div class="v">{{auc}}</div><div class="l">Chance it ranks a woman who develops diabetes above one who doesn't. 1.0 is perfect; 0.5 is a coin flip.</div></div>
+  <div class="stat"><div class="v warm">81% &rarr; {{lucky_mean}}</div><div class="l">The college project's accuracy, and what the same method really scores when tested fairly.</div></div>
 </section>
+
+<h2 id="how">How it works</h2>
+<p class="note">Five steps, from raw data to a decision about one woman.</p>
+<ol class="steps">
+  <li><b>Collect</b>768 women, eight health measurements each, and whether each was diagnosed with diabetes within five years.</li>
+  <li><b>Clean</b>Zeros that really mean "not measured" are treated as gaps. Insulin and skin thickness, missing too often, are left out.</li>
+  <li><b>Learn</b>The model learns how each measurement relates to diabetes. Glucose, weight and age may curve rather than follow a straight line.</li>
+  <li><b>Test fairly</b>It is scored 50 times, always on women it hasn't seen, so the results aren't flattered by luck.</li>
+  <li><b>Decide</b>For a new woman it gives a risk. At or above the <abbr title="The risk at which someone is sent for a follow-up test">cut-off</abbr> ({{cut_pct}}), she is flagged for a follow-up test.</li>
+</ol>
 
 <h2 id="try">Try the model</h2>
 <p class="note">Move the sliders to describe a woman. The estimate is the model's probability that she is diagnosed with
 diabetes within five years. The model runs in your browser, and nothing you enter is sent anywhere. It uses {{n_inputs}}
-measurements; insulin and skinfold thickness were dropped because half of those readings were never taken.</p>
+measurements; insulin and skinfold thickness were dropped because half of those readings were never taken. Glucose,
+BMI and age are allowed to bend, so risk can level off or fall where the data says it does.</p>
 <div class="presets" role="group" aria-label="Example women">
   <button class="btn" data-preset="typical">Typical woman in the data</button>
   <button class="btn" data-preset="low">Lower-risk example</button>
@@ -176,7 +220,7 @@ measurements; insulin and skinfold thickness were dropped because half of those 
       <h3>What moves this estimate</h3>
       <div class="legend"><span><i style="background:var(--down)"></i>lowers the odds</span><span><i style="background:var(--up)"></i>raises the odds</span></div>
       <div id="contrib"></div>
-      <p class="note" style="font-size:13.5px;margin:8px 0 0">Each bar compares this woman with the average woman in the data. "×2.0" means that measurement doubles her odds; "×0.5" halves them.</p>
+      <p class="note" style="font-size:13.5px;margin:8px 0 0">Each bar compares this woman with a typical woman in the data, who has the middle value of every measurement. "×2.0" means that measurement doubles her odds; "×0.5" halves them.</p>
     </div>
   </div>
 </div>
@@ -187,71 +231,128 @@ measurements; insulin and skinfold thickness were dropped because half of those 
     <span><button class="btn" style="padding:4px 12px;font-size:13.5px" data-cut="{{cut}}">Screening {{cut}}</button>
     <button class="btn" style="padding:4px 12px;font-size:13.5px" data-cut="0.50">Default 0.50</button></span>
   </div>
-  <p class="note" style="margin:4px 0 10px">Flag every woman whose estimate is at or above <b id="cutval"></b>. The counts are all 768 women, each scored by a model that had not seen her.</p>
+  <p class="note" style="margin:4px 0 10px">Every cut-off is a trade. Lower it and more women with diabetes are caught, but
+  more healthy women get tests they don't need. Move the slider: the picture shows what happens to every 100 women screened.
+  Flagging everyone at or above <b id="cutval"></b>:</p>
   <input type="range" id="cut" min="0.05" max="0.90" step="0.01" aria-label="Cut-off">
-  <div class="splitlab" style="margin-top:12px"><span><b id="tp"></b> of 268 women with diabetes caught</span><span><b id="fn"></b> missed</span></div>
-  <div class="split" id="barcase"></div>
-  <div class="splitlab" style="margin-top:12px"><span><b id="tn"></b> of 500 women without diabetes cleared</span><span><b id="fp"></b> false alarms</span></div>
-  <div class="split" id="barwell"></div>
+  <div class="dots" id="dots" role="img" aria-label="100 women"></div>
+  <div class="dotkey">
+    <span><i style="background:var(--down)"></i><b id="d_tp"></b> have diabetes and are flagged</span>
+    <span><i style="background:var(--up)"></i><b id="d_fn"></b> have diabetes but are missed</span>
+    <span><i style="border:2.5px solid var(--up)"></i><b id="d_fp"></b> healthy but flagged (false alarm)</span>
+    <span><i style="border:2.5px solid var(--neutral)"></i><b id="d_tn"></b> healthy and not flagged</span>
+  </div>
+  <p class="note" style="font-size:13.5px;margin:10px 0 0">Filled dots are women with diabetes; rings are healthy women. Out of all
+  768 women in the data, each scored by a model that had not seen her: <b id="tp"></b> of 268 cases caught, <b id="fn"></b> missed,
+  <b id="tn"></b> of 500 healthy women cleared, <b id="fp"></b> false alarms.</p>
 </div>
 
 <div class="warnbox"><b>This is not a medical tool.</b> The data is 768 women of Pima heritage aged 21 and over, collected near
 Phoenix, Arizona and published in 1988. The model has not been tested on anyone else. It is here to show how a risk model is
 built and judged, not to assess anyone's health.</div>
 
-<h2 id="findings">Key findings</h2>
-<ul class="findings">
-  <li><b>The original 81% was luck.</b> Repeating the original method on 200 random train/test splits gives anything from
-  {{lucky_min}} to {{lucky_max}}, averaging {{lucky_mean}}. The split in the college notebook beat {{lucky_beat}} of the others.
-  Always answering "no diabetes" scores 65%.</li>
-  <li><b>Half the insulin column was never measured, and it can't be rescued.</b> {{insulin_n}} of 768 insulin values and
-  {{skin_n}} skinfold values are zeros standing in for "missing". Six ways of filling them all score between {{strat_lo}} and
-  {{strat_hi}}. When known insulin readings are hidden, the best method recovers only {{rec_insulin}} of their variation, and
-  {{flips}} women ({{flips_pct}}) get a different screening decision depending on how the gaps are filled. So the published
-  model leaves insulin and skinfold out, and scores the same without them.</li>
-  <li><b>The simplest model ties for best.</b> With all eight inputs on the same 50 cross-validation splits, logistic regression scores AUC {{auc_lr}}
-  and a random forest {{auc_rf}}, a gap one tenth the size of the wobble between splits. Gradient boosting ({{auc_gb}}) and a
-  decision tree ({{auc_dt}}) are behind. Glucose alone gets {{auc_glu}}.</li>
-  <li><b>Accuracy hid the real problem.</b> At the standard 0.50 cut-off the model misses {{fn_default}} of 268 women with diabetes.
-  Moving the cut-off to {{cut}} catches {{sens_screen}} of them, at the price of {{fp_screen}} false alarms instead of {{fp_default}}.</li>
-  <li><b>The probabilities can be believed.</b> Predicted risk tracks what happened (calibration slope {{cal_slope}}, ideal 1.00),
-  so "30%" does mean roughly 3 in 10, for women like these.</li>
-  <li><b>It works worst for older women.</b> With one cut-off for everyone, the model clears only {{spec_old}} of healthy women aged
-  45 and over. It flags nearly all of them. That is the main thing the next milestones set out to fix.</li>
-</ul>
+<h2 id="findings">What we found</h2>
+<p class="note">The main results, each with the chart behind it. For every conclusion, how solid it is and where the evidence
+is, see the <a href="docs/FINDINGS.html">findings</a>. Unfamiliar word? Try the <a href="docs/GLOSSARY.html">glossary</a>.</p>
 
-<figure>
-  <img src="images/lucky_split.png" alt="Histogram of test accuracy across 200 random splits of the original method, ranging from 68% to 84% with an average of 77%. The split used in the original notebook sits near the top at 81%.">
-  <figcaption>The original method, 200 times. Only the random split changes.</figcaption>
-</figure>
-<figure>
-  <img src="images/model_comparison.png" alt="Dot chart of AUC for six models. Random forest 0.838, logistic regression 0.835, gradient boosting 0.823, decision tree 0.807, glucose only 0.791, always predict no diabetes 0.500.">
-  <figcaption>Six models on the same 50 splits. Whiskers show the split-to-split wobble.</figcaption>
-</figure>
-<figure>
-  <img src="images/threshold.png" alt="Line chart of sensitivity falling and specificity rising as the cut-off increases from 0 to 1, with the screening cut-off and the default 0.50 marked.">
-  <figcaption>Every cut-off is a trade between missed cases and false alarms.</figcaption>
-</figure>
-<figure>
-  <img src="images/missing.png" alt="Bar chart of missing readings: insulin 49%, skinfold 30%, blood pressure 5%, BMI 1%, glucose 1%.">
-  <figcaption>The gaps the original analysis didn't see.</figcaption>
-</figure>
-<figure>
-  <img src="images/strategies.png" alt="Dot chart of AUC for seven ways of handling missing values. The six logistic regression versions sit between {{strat_lo}} and {{strat_hi}}; gradient boosting is lowest. The whiskers are far wider than the differences.">
-  <figcaption>Seven ways to handle the gaps. The differences are a fraction of the split-to-split wobble.</figcaption>
-</figure>
-<figure>
-  <img src="images/spread.png" alt="Two outlined histograms of how far each woman's estimate moves across 30 plausible fills. Women with insulin missing move further, typically about 5 percentage points.">
-  <figcaption>How much one woman's estimate depends on what was guessed for her missing readings.</figcaption>
-</figure>
-<figure>
-  <img src="images/odds.png" alt="Chart of odds multipliers per standard deviation for the six inputs of the published model. Glucose has by far the largest effect, followed by BMI and pregnancies.">
-  <figcaption>What the published six-input model leans on. Glucose does most of the work.</figcaption>
-</figure>
+<div class="story">
+  <h3>1. The original 81% was luck</h3>
+  <p>The college project tested its model once, on one random fifth of the women, and got a good draw. Running exactly the same
+  method 200 times, each time on a different random fifth, gives anything from {{lucky_min}} to {{lucky_max}}. The fair answer is
+  the average, {{lucky_mean}}. For scale: answering "no diabetes" for everyone is 65% accurate and catches nobody.</p>
+  <figure>
+    <img src="images/lucky_split.png" alt="Histogram of test accuracy across 200 random splits of the original method, ranging from 68% to 84% with an average of 77%. The split used in the original notebook sits near the top at 81%.">
+    <figcaption><span class="howto"><b>How to read it:</b> each bar counts how many of the 200 tests landed at that accuracy. The
+    original project's single test (orange line) sits near the top of the range, beating {{lucky_beat}} of the others.</span></figcaption>
+  </figure>
+</div>
+
+<div class="story">
+  <h3>2. Accuracy hid the real problem</h3>
+  <p>For screening, what matters is how many women with diabetes are caught, and how many healthy women are sent for tests they
+  don't need. With the usual cut-off of 50%, the model misses {{p100_fn_def}} of every {{p100_pos}} women with diabetes. Lowering
+  the cut-off to {{cut_pct}} misses only {{p100_fn}}, but raises false alarms from {{p100_fp_def}} to {{p100_fp}} in every 100 women.
+  There is no free lunch: the right cut-off depends on what a missed case costs compared with an extra blood test.</p>
+  <figure>
+    <img src="images/threshold.png" alt="Line chart: as the cut-off rises from 0 to 1, the share of cases caught falls and the share of healthy women cleared rises. The screening cut-off and the default 0.50 are marked.">
+    <figcaption><span class="howto"><b>How to read it:</b> move left to right as the cut-off gets stricter. The green line (cases
+    caught) falls and the orange line (healthy women correctly not flagged) rises. Every cut-off is a point on that trade.</span></figcaption>
+  </figure>
+</div>
+
+<div class="story">
+  <h3>3. Half the insulin readings were never taken</h3>
+  <p>The data uses zero for "not measured", and nobody has an insulin level of zero. {{insulin_n}} of 768 women have no insulin
+  reading and {{skin_n}} have no skin-thickness reading. Six ways of filling the gaps all score the same; when real readings are
+  hidden and guessed back, the best method recovers only {{rec_insulin}} of the truth; and for {{flips}} women the screening decision
+  depends on the guess. Even where insulin was measured, it added nothing. So the model leaves both out.</p>
+  <figure>
+    <img src="images/missing.png" alt="Bar chart of missing readings: insulin 49%, skin thickness 30%, blood pressure 5%, BMI 1%, glucose 1%.">
+    <figcaption><span class="howto"><b>How to read it:</b> each bar is the share of women with no real reading for that measurement.</span></figcaption>
+  </figure>
+</div>
+
+<div class="story">
+  <h3>4. Simple beats complicated here</h3>
+  <p>Nine kinds of model were compared on equal terms, from straight-line formulas to boosted decision trees. The winner is a
+  simple, explainable one that lets glucose, weight and age curve ({{auc}}, against {{auc_straight}} with straight lines). The more
+  complex methods did no better: with only 768 women, they have too little to learn from. It also beats a simple rule: flagging
+  everyone with a glucose of 140 or more finds {{rule_tp}} women with diabetes, and the model, raising about the same number of
+  false alarms, finds {{model_tp_rule}}.</p>
+  <figure>
+    <img src="images/m3_models.png" alt="Two dot charts comparing nine models. Curves for glucose, BMI and age scores highest on all women (0.853) and on women 45 and over (0.791). The straight-line model scores 0.838 and 0.744.">
+    <figcaption><span class="howto"><b>How to read it:</b> each dot is one kind of model; further right is better at telling women
+    who develop diabetes from those who don't (<abbr title="Chance the model ranks a woman who develops diabetes above one who doesn't. 0.5 is a coin flip; 1.0 is perfect.">AUC</abbr>).
+    The left panel is all women, the right panel women 45 and over. Orange is the earlier straight-line model.</span></figcaption>
+  </figure>
+</div>
+
+<div class="story">
+  <h3>5. Risk peaks around 50, then falls</h3>
+  <p>In this data the diabetes rate climbs from 14% in women aged 21 to 24 to 71% at 50 to 54, then falls to 28% at 60 and over,
+  partly because many women who would develop diabetes already have it by then. The first models drew a straight line through age
+  and kept predicting about 50% for the oldest women. Letting age curve fixed that: false alarms fell from {{fp_m2}} to {{fp_screen}}
+  across all 768 women, and the share of healthy women 45 and over correctly not flagged rose from {{spec_old_m2}} to {{spec_old}}.</p>
+  <figure>
+    <img src="images/age_fit.png" alt="Line chart of the diabetes rate by five-year age group: it rises to 71% at 50 to 54, then falls to 28% at 60 and over. The straight-line model keeps predicting about 50% for the oldest groups; the curved model follows the fall.">
+    <figcaption><span class="howto"><b>How to read it:</b> black dots are the real share of each age group diagnosed with diabetes.
+    The green line (curved model) follows them down after 55; the orange line (straight-line model) can't.</span></figcaption>
+  </figure>
+</div>
+
+<div class="story">
+  <h3>6. Blood sugar matters most, by far</h3>
+  <p>Going from a low glucose reading to a high one (86 to 167) multiplies the odds of diabetes about 25 times. Weight and age come
+  next, at about 5 to 6 times each. Family history and pregnancies matter a little, and blood pressure barely at all once the others
+  are known. These are patterns in this group of women, not proof that one thing causes another.</p>
+  <figure>
+    <img src="images/shapes.png" alt="Three panels showing how glucose, BMI and age change the odds of diabetes compared with a typical woman. Glucose rises steeply. BMI rises to about 30, is flat to about 42, then rises again. Age rises to a peak near 50 and then turns down, where the straight line keeps rising.">
+    <figcaption><span class="howto"><b>How to read it:</b> each panel shows how one measurement changes the odds compared with a
+    typical woman (&times;1). Higher means more likely. Green is the current model, orange the earlier straight-line model. The flat
+    ends are deliberate: there are too few women at the extremes to trust a curve there.</span></figcaption>
+  </figure>
+</div>
+
+<div class="story">
+  <h3>7. The risks can be trusted, but not equally for everyone</h3>
+  <p>When the model says 30%, about 30 in 100 such women did develop diabetes, so its numbers mean what they say. It is less sharp
+  for women 45 and over, partly because half of them have diabetes. And with one cut-off for everyone, it now catches {{sens_young}}
+  of cases among women under 30, down from {{sens_young_m2}} with the earlier model, because it gives young women lower, more accurate
+  risks. Setting cut-offs by age group is planned for Milestone 5.</p>
+</div>
+
+<h2 id="read">Read more</h2>
+<div class="reading">
+  <a href="docs/OVERVIEW.html"><span>5 minutes</span><b>Start here</b>The whole project in plain English: the question, the data, how good the model is and what it can't do.</a>
+  <a href="docs/FINDINGS.html"><span>15 minutes</span><b>Findings</b>Every conclusion, one question at a time, with how solid it is and where the evidence is.</a>
+  <a href="#notebooks"><span>An hour</span><b>The notebooks</b>Each step of the analysis: the code, the result, how to read it and what it means.</a>
+  <a href="docs/GLOSSARY.html"><span>Any time</span><b>Glossary</b>Every technical word on this site, explained with an example from this project.</a>
+</div>
 
 <h2 id="notebooks">The analysis, step by step</h2>
-<p class="note">Each notebook shows the code, its result, how to read it and what it means. They are re-run from scratch
-by one command, so the outputs always match the code.</p>
+<p class="note">Each notebook opens with a plain-language summary, then shows every step: what we're looking for, the code, its
+result, how to read it, what it means and what comes next. They are re-run from scratch by one command, so the results always
+match the code.</p>
 <ul class="nbs">
 {{notebook_list}}
 </ul>
@@ -262,9 +363,9 @@ by one command, so the outputs always match the code.</p>
 <tr><th>Milestone</th><th>Question</th><th>Status</th></tr>
 {{roadmap_rows}}
 </table>
-<p style="margin-top:14px"><a href="docs/MILESTONES.html">Full roadmap</a> ·
+<p style="margin-top:14px"><a href="docs/OVERVIEW.html">Start here</a> · <a href="docs/FINDINGS.html">Findings</a> · <a href="docs/MILESTONES.html">Full roadmap</a> ·
 <a href="docs/ENHANCEMENTS_AND_BUGS.html">Enhancements and bugs</a> (including the nine bugs found in the original notebook) ·
-<a href="docs/DECISIONS.html">Decisions</a></p>
+<a href="docs/DECISIONS.html">Decisions</a> · <a href="docs/GLOSSARY.html">Glossary</a></p>
 
 <footer>
   <a href="/scott/">Scott Schirkofsky</a> · Page built {{built}}
@@ -292,12 +393,22 @@ const PRESETS = {
 };
 const state = {v: M.median.slice(), miss: F.map(() => false), cut: D.cut};
 
-// The whole model: fill a missing value with the median, standardise, weight, add up, squash to 0..1.
+// Look up one input's contribution on its grid, interpolating between the two nearest points.
+function lookup(f, x) {
+  const g = M.grid[f], c = M.contribution[f], n = g.length;
+  if (x <= g[0]) return c[0];
+  if (x >= g[n - 1]) return c[n - 1];
+  const i = Math.min(n - 2, Math.floor((x - g[0]) / (g[1] - g[0])));
+  const t = (x - g[i]) / (g[i + 1] - g[i]);
+  return c[i] + t * (c[i + 1] - c[i]);
+}
+
+// The whole model: start from a typical woman's log-odds, add each input's contribution, squash to 0..1.
+// A missing value takes the median, so it contributes nothing.
 function predict(values, missing) {
-  let z = M.intercept; const parts = [];
+  let z = M.base_logit; const parts = [];
   F.forEach((f, i) => {
-    const x = missing[i] ? M.median[i] : values[i];
-    const c = M.coef[i] * (x - M.mean[i]) / M.scale[i];
+    const c = lookup(f, missing[i] ? M.median[i] : values[i]);
     parts.push(c); z += c;
   });
   return {p: 1 / (1 + Math.exp(-z)), parts};
@@ -353,7 +464,7 @@ function render() {
     .sort((a, b) => Math.abs(b.c) - Math.abs(a.c))
     .map(({f, i, c}) => {
       const w = Math.abs(c) / max * 50, mult = Math.exp(c);
-      const why = state.miss[i] ? "not measured, so it has no effect" : `${state.v[i].toFixed(SPEC[f].dec)} vs an average of ${M.mean[i].toFixed(SPEC[f].dec)}`;
+      const why = state.miss[i] ? "not measured, so it has no effect" : `${state.v[i].toFixed(SPEC[f].dec)} vs a typical ${M.median[i].toFixed(SPEC[f].dec)}`;
       return `<div class="crow" title="${SHORT[f]}: ${why}. Odds ×${mult.toFixed(2)}"><span class="cn">${SHORT[f]}</span>
         <span class="cbar"><i class="${c >= 0 ? "up" : "down"}" style="width:${w}%"></i></span><span class="cv">×${mult.toFixed(2)}</span></div>`;
     }).join("");
@@ -366,8 +477,21 @@ function render() {
   document.getElementById("fn").textContent = fn;
   document.getElementById("tn").textContent = `${tn} (${Math.round(tn / (tn + fp) * 100)}%)`;
   document.getElementById("fp").textContent = fp;
-  document.getElementById("barcase").innerHTML = `<i class="a" style="flex:${tp}" title="${tp} caught"></i><i class="b" style="flex:${fn}" title="${fn} missed"></i>`;
-  document.getElementById("barwell").innerHTML = `<i class="a" style="flex:${tn}" title="${tn} cleared"></i><i class="c" style="flex:${fp}" title="${fp} false alarms"></i>`;
+  const per100 = per100Counts([tp, fn, fp, tn]);
+  ["tp", "fn", "fp", "tn"].forEach((k, j) => document.getElementById("d_" + k).textContent = per100[j]);
+  document.getElementById("dots").innerHTML = ["tp", "fn", "fp", "tn"]
+    .map((k, j) => `<i class="${k}"></i>`.repeat(per100[j])).join("");
+  document.getElementById("dots").setAttribute("aria-label",
+    `Out of 100 women: ${per100[0]} with diabetes flagged, ${per100[1]} missed, ${per100[2]} false alarms, ${per100[3]} healthy and not flagged`);
+}
+
+// Scale counts to 100 women, rounding so the four groups always add up to exactly 100.
+function per100Counts(counts) {
+  const total = counts.reduce((a, b) => a + b, 0);
+  const raw = counts.map(c => c / total * 100), out = raw.map(Math.floor);
+  raw.map((r, i) => [r - Math.floor(r), i]).sort((a, b) => b[0] - a[0])
+     .slice(0, 100 - out.reduce((a, b) => a + b, 0)).forEach(([, i]) => out[i]++);
+  return out;
 }
 
 buildFields();

@@ -42,6 +42,18 @@ def test_current_model_leaves_out_insulin_and_skinfold():
     assert np.allclose(1 / (1 + np.exp(-z)), expected, atol=1e-9)
 
 
+def test_curves_export_matches_scikit_learn():
+    """The page runs the curves model from lookup tables; that must equal scikit-learn's answer."""
+    from src import nonlinear as nl
+    X, y = load_data()
+    Xc = X[current_features(FEATURES)]
+    m = nl.export_curves_model(Xc, y)
+    expected = nl.curves_model().fit(Xc, y).predict_proba(Xc)[:, 1]
+    got = nl.predict_from_export(m, Xc.fillna(Xc.median()).to_numpy())
+    assert np.abs(got - expected).max() < 1e-4
+    assert m["features"] == list(Xc.columns)
+
+
 def test_every_missing_data_strategy_runs_and_never_sees_a_gap():
     from src.missing import strategies
     X, y = load_data()

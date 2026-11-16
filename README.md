@@ -6,21 +6,18 @@ and grows milestone by milestone into deeper machine learning.
 
 **Project page and interactive model:** https://schirko.com/scott/diabetes-prediction/
 
-## What Milestone 1 found
+**New here?** Start with [docs/OVERVIEW.md](docs/OVERVIEW.md), the whole project in plain English in five minutes.
+Every technical term is explained in [docs/GLOSSARY.md](docs/GLOSSARY.md).
 
-- The original 81% accuracy was a lucky train/test split. The same method over 200 random splits averages 77% (range 68% to 84%). Always answering "no diabetes" scores 65%.
-- 374 of 768 insulin values (49%) and 227 skinfold values (30%) are zeros that mean "not measured".
-- Logistic regression (AUC 0.835) ties a random forest (0.838) on the same 50 cross-validation splits. Glucose alone reaches 0.791.
-- At the default 0.50 cut-off the model misses 116 of 268 women with diabetes. A screening cut-off of 0.24 catches 85%, with 188 false alarms instead of 61.
-- Predicted probabilities are well calibrated (slope 0.96).
-- Weak spot: for women 45 and over the model clears only 22% of those without diabetes (tracked as B10, still open).
+## Headline results
 
-## What Milestone 2 found
+- The original 81% accuracy was a lucky split; the same method averages 77% over 200 splits.
+- The published model (logistic regression with curves for glucose, BMI and age) scores AUC 0.85 on women it never saw.
+- At a screening cut-off of 0.28 it catches 85% of cases; at the standard 0.50 it misses 39%.
+- Glucose does most of the work. Insulin and skinfold are half missing and add nothing, so they are left out.
+- It serves women 45 and over less well, and at the shared cut-off catches fewer cases under 30 (open for Milestone 5).
 
-- Seven ways of handling the missing readings score the same: AUC 0.832 to 0.838 for the six logistic versions.
-- Hidden insulin readings can't be guessed back. The best method recovers 29% of their variation.
-- Filling the gaps 30 plausible ways moves 53 of 768 women (7%) from one side of the cut-off to the other.
-- The published model now leaves insulin and skinfold out: six inputs, AUC 0.838, cut-off 0.23, 86% of cases caught.
+Every finding, organised by question and marked by how solid it is, is in [docs/FINDINGS.md](docs/FINDINGS.md).
 
 ## Layout
 
@@ -30,12 +27,16 @@ and grows milestone by milestone into deeper machine learning.
 | `src/data.py` | Loading; turns impossible zeros into missing values |
 | `src/modeling.py` | The candidate models, each in a leak-free pipeline |
 | `src/missing.py` | Milestone 2: missing-data strategies, recovery test, multiple imputation |
+| `src/nonlinear.py` | Milestone 3: curved effects, boosted models, insulin re-test; the published model and its export |
 | `src/evaluate.py` | Runs the whole evaluation, writes `reports/` |
 | `src/figures.py` | Charts shared by the notebooks and the site |
 | `src/run_notebooks.py` | Re-runs every notebook top to bottom |
 | `src/build_site.py` | Builds the static project site into `SITE_DIR` |
 | `notebooks/` | The analysis, in order. Code, result, how to read it, what it means |
 | `site_template/index.html` | Template for the project page and the in-browser model |
+| `docs/OVERVIEW.md` | Start here: the project in plain English |
+| `docs/GLOSSARY.md` | Every technical term, with an example from this project |
+| `docs/FINDINGS.md` | What the project has established, one question at a time |
 | `docs/MILESTONES.md` | The ten-milestone plan |
 | `docs/ENHANCEMENTS_AND_BUGS.md` | Numbered tracker (E01..., B01...) |
 | `tools/make_notebooks.py` | Scaffold that writes the notebooks' structure and text |

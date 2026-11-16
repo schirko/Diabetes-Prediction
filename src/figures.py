@@ -210,12 +210,84 @@ def imputation_spread():
     return fig
 
 
+def m3_models():
+    """Milestone 3: every candidate on overall AUC and on AUC for women 45 and over."""
+    comp = pd.DataFrame(_metrics()["m3"]["comparison"]).T.sort_values("auc")
+    fig, axes = plt.subplots(1, 2, figsize=(9.4, 3.9), sharey=True, gridspec_kw={"wspace": 0.08})
+    ypos = np.arange(len(comp))
+    colors = [WARM if n.startswith("Straight") else GREEN for n in comp.index]
+    for ax, col, title, lim in [(axes[0], "auc", "All women", (0.82, 0.86)),
+                                (axes[1], "auc_45plus", "Women 45 and over", (0.72, 0.80))]:
+        ax.scatter(comp[col], ypos, s=60, c=colors, zorder=3, edgecolor="white", linewidth=1.5)
+        for yy, v in zip(ypos, comp[col]):
+            ax.text(v + (lim[1] - lim[0]) * 0.03, yy, f"{v:.3f}", va="center", color=INK, fontsize=9.5)
+        ax.set_xlim(*lim)
+        ax.set_title(title, fontsize=11.5)
+        ax.grid(axis="y", visible=False)
+        ax.set_xlabel("AUC")
+    axes[0].set_yticks(ypos, comp.index)
+    axes[0].set_xticks([0.82, 0.83, 0.84, 0.85])
+    axes[1].set_xticks([0.72, 0.74, 0.76, 0.78])
+    fig.suptitle("Nine models, the same 50 splits. Orange is the straight-line model from Milestone 2.",
+                 x=0.02, ha="left", fontsize=12.5, fontweight="bold", color=INK)
+    fig.subplots_adjust(top=0.84)
+    return fig
+
+
+def age_fit():
+    """Milestone 3: the real diabetes rate by age, against what each model predicts."""
+    fit = pd.DataFrame(_metrics()["m3"]["age_fit"]).T
+    x = np.arange(len(fit))
+    fig, ax = plt.subplots(figsize=(7.4, 3.8))
+    ax.plot(x, fit["straight"] * 100, color=WARM, linewidth=2, label="Straight lines")
+    ax.plot(x, fit["curves"] * 100, color=GREEN, linewidth=2, label="Curves")
+    ax.scatter(x, fit["actual"] * 100, s=46, color=INK, zorder=4, label="Actual rate")
+    ax.text(x[-1] + 0.15, fit["straight"].iloc[-1] * 100, "straight\nlines", color=INK, fontsize=9.5, va="center")
+    ax.text(x[-1] + 0.15, fit["curves"].iloc[-1] * 100 - 2, "curves", color=INK, fontsize=9.5, va="center")
+    ax.text(x[-1] + 0.15, fit["actual"].iloc[-1] * 100 - 7, "actual", color=INK, fontsize=9.5, va="center")
+    ax.set_xticks(x, [f"{a}\n({int(n)})" for a, n in zip(fit.index, fit["women"])])
+    ax.set_xlim(-0.4, len(fit) - 0.1)
+    ax.set_ylim(0, 80)
+    ax.set_xlabel("Age group (number of women)")
+    ax.set_ylabel("Diagnosed with diabetes (%)")
+    ax.set_title("Risk peaks around 50; a straight line can't turn down")
+    return fig
+
+
+def shapes():
+    """Milestone 3: how glucose, BMI and age move the odds, curved model against straight lines."""
+    sh = _metrics()["m3"]["shapes"]
+    fig, axes = plt.subplots(1, 3, figsize=(9.6, 3.3), sharey=True, gridspec_kw={"wspace": 0.1})
+    for ax, f in zip(axes, ["Glucose", "BMI", "Age"]):
+        g = np.array(sh[f]["grid"])
+        ax.plot(g, np.exp(sh[f]["straight"]), color=WARM, linewidth=2)
+        ax.plot(g, np.exp(sh[f]["curves"]), color=GREEN, linewidth=2)
+        ax.axhline(1, color=MUTED, linewidth=1)
+        ax.set_yscale("log")
+        ax.set_title(LABELS[f][0].split(",")[0], fontsize=11.5)
+        ax.set_xlabel(LABELS[f][1])
+    axes[0].set_ylabel("Odds vs a typical woman (log scale)")
+    axes[0].set_ylim(0.015, 20)
+    axes[0].set_yticks([0.02, 0.05, 0.1, 0.25, 1, 4, 10], ["×0.02", "×0.05", "×0.1", "×0.25", "×1", "×4", "×10"])
+    axes[0].minorticks_off()
+    for ax in axes[1:]:
+        ax.minorticks_off()
+    age = np.array(sh["Age"]["grid"])
+    axes[2].text(age[-1], np.exp(sh["Age"]["straight"][-1]) * 1.3, "straight", color=INK, fontsize=9.5, ha="right")
+    axes[2].text(age[-1], np.exp(sh["Age"]["curves"][-1]) * 0.6, "curved", color=INK, fontsize=9.5, ha="right", va="top")
+    fig.suptitle("What each input does to the odds", x=0.02, ha="left", fontsize=13, fontweight="bold", color=INK)
+    fig.subplots_adjust(top=0.82)
+    return fig
+
+
 ALL = {
     "missing": missing_values,
     "lucky_split": lucky_split,
     "model_comparison": model_comparison,
     "threshold": lambda: threshold_tradeoff("current"),
-    "odds": odds_ratios,
+    "shapes": shapes,
+    "age_fit": age_fit,
+    "m3_models": m3_models,
     "strategies": strategy_comparison,
     "recovery": recovery,
     "spread": imputation_spread,

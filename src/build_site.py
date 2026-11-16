@@ -41,8 +41,10 @@ NOTEBOOK_BLURBS = {
                                      "and the eight-input baseline model.",
     "04_missing_data": "Seven ways to handle the missing readings, a test of whether insulin can be guessed back, "
                        "and why the published model now leaves insulin and skinfold out.",
+    "05_curved_effects": "Why the model over-flagged older women, nine curved and boosted models compared, "
+                         "insulin's second hearing, and the curved model the page now runs.",
 }
-DOCS = ["MILESTONES", "ENHANCEMENTS_AND_BUGS", "DECISIONS"]
+DOCS = ["OVERVIEW", "GLOSSARY", "FINDINGS", "MILESTONES", "ENHANCEMENTS_AND_BUGS", "DECISIONS"]
 
 PAGE_CSS = """
 :root { --bg:#f6f5f1; --surface:#fff; --ink:#1c211e; --muted:#4a524d; --line:#e2e0d8; --accent:#2E6A4C; --code:#f3f2ec; }
@@ -63,6 +65,9 @@ th,td { border:1px solid var(--line); padding:6px 11px; text-align:left; vertica
 .out-table td { text-align:right; font-variant-numeric:tabular-nums; }
 th { background:#f1f0eb; }
 img { max-width:100%; height:auto; border:1px solid var(--line); border-radius:10px; background:#fff; margin:8px 0; }
+blockquote { margin:16px 0; padding:12px 18px; background:var(--surface); border:1px solid var(--line);
+             border-left:4px solid var(--accent); border-radius:10px; }
+blockquote p { margin:0; }
 .lbl { font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:600; margin:16px 0 -4px; }
 footer { margin-top:48px; padding-top:16px; border-top:1px solid var(--line); color:var(--muted); font-size:14px; }
 """
@@ -87,7 +92,7 @@ def backbar() -> str:
     Portfolio
   </a>
   <span class="sx-crumb">{PROJECT_NAME}</span>
-  <span class="sx-links"><a href="/scott/{SLUG}/">Project page</a><a href="/scott/{SLUG}/#notebooks">Notebooks</a><a href="/scott/{SLUG}/docs/MILESTONES.html">Roadmap</a></span>
+  <span class="sx-links"><a href="/scott/{SLUG}/">Project page</a><a href="/scott/{SLUG}/docs/OVERVIEW.html">Start here</a><a href="/scott/{SLUG}/docs/FINDINGS.html">Findings</a><a href="/scott/{SLUG}/docs/GLOSSARY.html">Glossary</a></span>
 </div>"""
 
 
@@ -125,7 +130,7 @@ def render_notebook(path) -> tuple:
             m = re.match(r"#\s+(.+)", cell.source)
             if m and title == path.stem:
                 title = m.group(1).strip()
-            parts.append(md(cell.source))
+            parts.append(md(re.sub(r"\]\(\.\./docs/(\w+)\.md\)", r"](../docs/\1.html)", cell.source)))
             continue
         parts.append('<div class="lbl">Code</div>' + highlight(cell.source, PythonLexer(), fmt))
         outs = []
@@ -156,7 +161,13 @@ def tokens(m: dict) -> dict:
     old = next(b for b in cur["by_age"] if b["band"].startswith("45"))
     logistic_aucs = [v["auc"] for k, v in m2["strategies"].items() if not k.startswith("Gradient")]
     best_recovery = max(v["r2"] for v in m2["recovery"]["Insulin"].values())
-    return {
+    b10 = m["m3"]["b10"]
+    young = next(b for b in cur["by_age"] if b["band"].startswith("21"))
+    tp, fn, fp, tn = per_100([scr["tp"], scr["fn"], scr["fp"], scr["tn"]])
+    _, fn_d, fp_d, _ = per_100([dft["tp"], dft["fn"], dft["fp"], dft["tn"]])
+    p100 = {"p100_tp": tp, "p100_fn": fn, "p100_fp": fp, "p100_tn": tn, "p100_pos": tp + fn, "p100_neg": fp + tn,
+            "p100_fn_def": fn_d, "p100_fp_def": fp_d}
+    return {k: str(v) for k, v in p100.items()} | {
         "project_name": PROJECT_NAME, "slug": SLUG, "repo_url": REPO_URL,
         "built": f"{dt.date.today():%B %d, %Y}",
         "lucky_mean": pct(ls["mean"]), "lucky_min": pct(ls["min"]), "lucky_max": pct(ls["max"]),
@@ -175,7 +186,24 @@ def tokens(m: dict) -> dict:
         "auc_gb": f"{comp['Gradient boosting']['auc']:.3f}", "auc_dt": f"{comp['Decision tree']['auc']:.3f}",
         "auc_glu": f"{comp['Glucose only (logistic)']['auc']:.3f}",
         "cal_slope": f"{cur['calibration']['slope']:.2f}", "spec_old": pct(old["specificity"]),
+        "fp_m2": str(b10["straight"]["all"]["fp"]), "spec_old_m2": pct(b10["straight"]["age_45plus"]["specificity"]),
+        "auc_old": f"{old['auc']:.2f}", "auc_young": f"{young['auc']:.2f}",
+        "sens_young": pct(b10["curves"]["under_30"]["sensitivity"]),
+        "cut_pct": pct(scr["threshold"]),
+        "auc_straight": f"{m['m3']['comparison']['Straight lines (Milestone 2)']['auc']:.2f}",
+        "rule_tp": str(m["glucose_140_rule"]["tp"]), "model_tp_rule": str(cur["vs_glucose_rule"]["tp"]),
+        "sens_young_m2": pct(b10["straight"]["under_30"]["sensitivity"]),
     }
+
+
+def per_100(counts) -> list:
+    """Scale counts to 100 women, rounding so they add up to exactly 100 (largest remainder)."""
+    total = sum(counts)
+    raw = [c / total * 100 for c in counts]
+    out = [int(r) for r in raw]
+    for i in sorted(range(len(raw)), key=lambda i: raw[i] - out[i], reverse=True)[:100 - sum(out)]:
+        out[i] += 1
+    return out
 
 
 def roadmap_rows() -> str:
@@ -215,10 +243,12 @@ def build():
     for name in DOCS:
         text = (ROOT / "docs" / f"{name}.md").read_text(encoding="utf-8")
         text = re.sub(r"\]\((\w+)\.md\)", r"](\1.html)", text)      # links between the docs
-        (out / "docs" / f"{name}.html").write_text(shell(name.replace("_", " ").title(), md(text)), encoding="utf-8")
+        title = {"OVERVIEW": "Start here", "ENHANCEMENTS_AND_BUGS": "Enhancements and bugs"}.get(
+            name, name.replace("_", " ").title())
+        (out / "docs" / f"{name}.html").write_text(shell(title, md(text)), encoding="utf-8")
 
     data = {
-        "model": {k: model[k] for k in ["features", "median", "mean", "scale", "coef", "intercept", "range"]},
+        "model": {k: model[k] for k in ["features", "median", "base_logit", "grid", "contribution", "range"]},
         "labels": LABELS,
         "cut": metrics["current"]["threshold_screening"]["threshold"],
         "oof": {"p": [round(float(v), 6) for v in oof["p_current"]], "y": [int(v) for v in oof["outcome"]]},

@@ -1,0 +1,20 @@
+-------Pregnancies Outliers---------------------------
+Count: 4
+Percentage of Data: 0.52%
+ 
+-------Glucose Outliers-------------------------------
+Count: 0
+Percentage of Data: 0.0%
+ 
+-------BMI Outliers-----------------------------------
+Count: 8
+Percentage of Data: 1.04%
+ 
+-------Age Outliers-----------------------------------
+Count: 9
+Percentage of Data: 1.17%
+ 
+-------Outcome Outliers-------------------------------
+Count: 0
+Percentage of Data: 0.0%
+ 

@@ -14,9 +14,8 @@ OUT = Path(__file__).resolve().parents[1] / "notebooks"
 SETUP = """import sys, warnings
 sys.path.insert(0, "..")          # so the notebook can import the project's src/ folder
 warnings.filterwarnings("ignore")
-import numpy as np
 import pandas as pd
-pd.set_option("display.float_format", lambda v: f"{v:,.3f}")"""
+pd.set_option("display.float_format", lambda value: f"{value:,.3f}")"""
 
 
 def build(name, title, intro, sections):
@@ -196,8 +195,8 @@ pipe = make_pipeline(
 cv = RepeatedStratifiedKFold(n_splits=5, n_repeats=10, random_state=42)   # 50 train/test splits
 res = cross_validate(pipe, X, y, cv=cv, scoring=["roc_auc", "accuracy", "recall"])
 for k in ["roc_auc", "accuracy", "recall"]:
-    v = res[f"test_{k}"]
-    print(f"{k:9s} mean {v.mean():.3f}   spread (sd) {v.std():.3f}")""",
+    scores = res[f"test_{k}"]
+    print(f"{k:9s} mean {scores.mean():.3f}   spread (sd) {scores.std():.3f}")""",
             read="Cross-validation cuts the data into 5 parts, trains on 4 and tests on the 5th, and rotates so every "
                  "woman is tested once. Doing that 10 times with different cuts gives 50 scores. `mean` is their "
                  "average and `sd` is how much they wobble. `roc_auc` (AUC) is the chance the model gives a higher "

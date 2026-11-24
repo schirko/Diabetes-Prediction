@@ -13,9 +13,11 @@ Every technical term is explained in [docs/GLOSSARY.md](docs/GLOSSARY.md).
 
 - The original 81% accuracy was a lucky split; the same method averages 77% over 200 splits.
 - The published model (logistic regression with curves for glucose, BMI and age) scores AUC 0.85 on women it never saw.
-- At a screening cut-off of 0.28 it catches 85% of cases; at the standard 0.50 it misses 39%.
+- In a fair, tuned contest with nested cross-validation, nine rivals (including XGBoost, a neural network and a stacked ensemble) didn't beat it.
+- The cut-off comes from a stated cost: a missed case counts as 5 false alarms, giving 0.17. Per 100 women it catches 33 of 35 cases with 30 false alarms (the page also shows 2 times and 10 times). At the standard 0.50 it misses 39%.
+- Rebalancing the data (class weights, SMOTE) doesn't help: moving the cut-off does the same job without distorting the risks.
 - Glucose does most of the work. Insulin and skinfold are half missing and add nothing, so they are left out.
-- It serves women 45 and over less well, and at the shared cut-off catches fewer cases under 30 (open for Milestone 5).
+- It serves women 45 and over less well. The cost-based cut-off also fixes the drop in cases caught under 30, with no age-specific rules.
 
 Every finding, organised by question and marked by how solid it is, is in [docs/FINDINGS.md](docs/FINDINGS.md).
 
@@ -28,6 +30,8 @@ Every finding, organised by question and marked by how solid it is, is in [docs/
 | `src/modeling.py` | The candidate models, each in a leak-free pipeline |
 | `src/missing.py` | Milestone 2: missing-data strategies, recovery test, multiple imputation |
 | `src/nonlinear.py` | Milestone 3: curved effects, boosted models, insulin re-test; the published model and its export |
+| `src/contest.py` | Milestone 4: tuned model contest (nested cross-validation, Optuna), corrected t-test, stacked ensemble |
+| `src/decision.py` | Milestone 5: rebalancing comparison, cost-based cut-offs, decision curve, age-band policies |
 | `src/evaluate.py` | Runs the whole evaluation, writes `reports/` |
 | `src/figures.py` | Charts shared by the notebooks and the site |
 | `src/run_notebooks.py` | Re-runs every notebook top to bottom |

@@ -39,7 +39,22 @@ five years.
 
 **Cut-off (threshold).** The risk at which someone is flagged. A low cut-off catches more cases and raises more false
 alarms; a high cut-off does the reverse. Choosing it is a judgment about costs, not something the data decides.
-*Here: 0.28 (28%) for screening, chosen so at least 85% of cases are caught.*
+*Here: 0.17 (17%), chosen from a stated cost (see cost ratio). The earlier rule, 0.28, caught 85% of cases.*
+
+**Cost ratio.** How many times worse a missed case is than a false alarm. If a missed case is 5 times as bad, the
+cheapest cut-off is 1 / (1 + 5), about 0.17. *Here: the page shows 2 times (0.33), 5 times (0.17, the default) and 10
+times (0.09).*
+
+**Cost per 100 women.** Missed cases times the cost ratio, plus false alarms, per 100 women screened. Lower is better.
+It is measured in false-alarm units.
+
+**Net benefit and decision curve.** Cases found minus false alarms weighted by the cost ratio, drawn across every
+cut-off. A model is worth using where its line sits above both "test nobody" (zero) and "test everybody".
+
+**Class weights.** Telling the model to count each woman in the smaller group more heavily when it learns.
+
+**SMOTE.** Synthetic minority over-sampling: inventing extra cases for the smaller group by blending real ones. Done
+inside each training set only, so test women never leak in. *Here: neither it nor class weights helped.*
 
 **Screening.** Testing people who have no symptoms, to find who needs a closer look. A screening tool flags people
 for a proper test; it does not diagnose.
@@ -76,6 +91,26 @@ on new people. Complex models on small datasets are prone to it.
 **Fresh splits.** Re-running a comparison on a new random set of splits. If the winner is still the winner, the
 result is not an accident of one set of splits.
 
+**Tuning (hyperparameters).** Many models have settings that must be chosen before they learn, such as how many
+neighbours to consult or how deep a tree may grow. These are called hyperparameters. Tuning means trying many
+settings and keeping the one that scores best. *Here it is done by Optuna, trying 30 combinations per model.*
+
+**Optuna.** A tool that tunes settings efficiently: instead of trying combinations at random, it learns from earlier
+tries which areas look promising.
+
+**Nested cross-validation.** Cross-validation inside cross-validation. The outer splits score the model; inside each
+outer training set, a second split is used only to tune its settings. The outer test women never influence the
+settings, so tuning can't flatter the score. *Used for the Milestone 4 contest.*
+
+**p-value.** If two models were really equally good, the chance of seeing a difference at least as large as the one
+measured. Below 0.05 is the usual bar for "probably not chance". A large p-value doesn't prove the models are equal;
+it means the data can't tell them apart.
+
+**Corrected resampled t-test.** A test of whether one model beats another across the same cross-validation splits.
+An ordinary t-test treats each split as an independent experiment, but the splits share most of their women, so it
+is overconfident. The correction (Nadeau and Bengio, 2003) allows for that. *Here an ordinary test gave p = 0.006
+where the corrected one gives 0.16.*
+
 **95% interval.** The range the true value probably lies in, given how much the result would vary with different
 data. *Here the AUC is 0.85, with a 95% interval of 0.83 to 0.88.*
 
@@ -108,6 +143,20 @@ others. *Tested in Milestone 3; it added nothing.*
 **Random forest.** Hundreds of decision trees, each trained a little differently, averaged together.
 
 **Gradient boosting.** Many small decision trees built one after another, each correcting the last one's mistakes.
+
+**XGBoost.** A popular, fast version of gradient boosting, often a winner in data-science competitions.
+
+**k-nearest neighbours.** Predicts a woman's risk from the women most similar to her: if 20 of her 50 closest
+neighbours developed diabetes, her risk is 40%.
+
+**Support vector machine (SVM).** A model that finds the boundary separating the two groups with the widest possible
+margin, and can bend that boundary.
+
+**Neural network.** Layers of simple connected units that together can learn complicated patterns. Powerful with
+lots of data; on 768 women it has little to work with. *Here: one hidden layer, tuned for size.*
+
+**Stacked ensemble.** Several different models trained side by side, with a final model that learns how much to
+trust each one's prediction. *Tested in Milestone 4: it did no better than the best single model.*
 
 **Explainable Boosting Machine (EBM).** A boosting model that learns one curve per input and keeps them separate, so it
 stays explainable.

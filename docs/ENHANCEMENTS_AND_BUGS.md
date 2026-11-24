@@ -3,7 +3,7 @@
 One numbered list for everything done and planned. Refer to items by number (E08, B10).
 Numbers are never reused. Milestones are described in [MILESTONES.md](MILESTONES.md).
 
-Last updated: 2026-11-16
+Last updated: 2026-11-23
 
 ## Enhancements
 
@@ -20,11 +20,11 @@ Last updated: 2026-11-16
 | E09 | Multiple imputation: how much one person's risk moves because of guessed insulin (30 fills, 53 women change sides of the cut-off) | M2 | Done |
 | E10 | Splines, interactions (age by glucose) and log transforms; curves for glucose, BMI and age won (AUC 0.853 vs 0.838) | M3 | Done |
 | E11 | Explainable Boosting Machine (0.841) and monotonic-constraint boosting (0.832); neither beat the curves | M3 | Done |
-| E12 | Tuned SVM, k-NN, XGBoost/LightGBM and neural network in nested cross-validation (Optuna) | M4 | Planned |
-| E13 | Formal model comparison (corrected resampled t-test) | M4 | Planned |
-| E14 | Stacked ensemble | M4 | Planned |
-| E15 | Class weights vs SMOTE vs cut-off moving | M5 | Planned |
-| E16 | Decision-curve analysis and a cost-based cut-off | M5 | Planned |
+| E12 | Tuned SVM, k-NN, XGBoost, random forest, gradient boosting, neural network and curves in nested cross-validation (Optuna); none beat the published model | M4 | Done |
+| E13 | Formal model comparison (corrected resampled t-test); only k-NN clearly worse; curves vs straight lines downgraded to likely (p = 0.16) | M4 | Done |
+| E14 | Stacked ensemble of four model types; 0.849, no better than the curves model alone | M4 | Done |
+| E15 | Class weights vs SMOTE vs cut-off moving. Neither rebalancing trick beat moving the cut-off (same 152 to 154 false alarms to catch 85%), and both distort the risks | M5 | Done |
+| E16 | Decision-curve analysis and a cost-based cut-off: cut-off = 1 / (1 + cost ratio); the page offers 2x, 5x (default) and 10x | M5 | Done |
 | E17 | SHAP, permutation importance, partial-dependence and ICE curves | M6 | Planned |
 | E18 | Counterfactual explanations in the app | M6 | Planned |
 | E19 | Bootstrap interval around each individual estimate | M7 | Planned |
@@ -39,9 +39,10 @@ Last updated: 2026-11-16
 | E28 | Optional Streamlit or FastAPI version on the VPS | M10 | Planned |
 | E29 | Re-test insulin in a form that should matter: log scale and combined with glucose (insulin resistance), on women who have a reading; added nothing | M3 | Done |
 | E30 | Published model reduced to six inputs (insulin and skinfold left out); app, page numbers and tests follow the current model | M2 | Done |
-| E31 | Cut-offs set separately by age band (fix for B12) | M5 | Planned |
+| E31 | Cut-offs set separately by age band (fix for B12). Tested; one shared cost-based cut-off does as well or better, so not adopted | M5 | Done (not needed) |
 | E32 | Published model switched to curves for glucose, BMI and age, with extremes held at the 1st and 99th percentiles; the app runs it from lookup tables | M3 | Done |
 | E33 | Documentation for non-analysts: a five-minute overview, a glossary, plain-language summaries on every finding and notebook, and a reworked project page (how it works, 100-women picture, findings told as a story with how to read each chart) | M3 | Done |
+| E34 | Presentation: a plan (PRESENTATION_PLAN.md), then a 12-slide deck for non-analysts in HTML, PowerPoint and PNG (plus PDF), linked from the project page; modelled on the meat-prices deck | M11 | Planned |
 
 ## Bugs
 
@@ -61,7 +62,7 @@ The original file is kept unchanged as the "before".
 | B09 | Headline accuracies (79% to 81%) came from one favourable split; R2 and mean squared error were used to judge a yes/no classifier. | M1 | Fixed by E03, E04 |
 | B10 | One cut-off for everyone clears only 22% of healthy women aged 45 and over, so for that group the model flags nearly everyone. | M1 | Fixed in part 2026-11-16 (E32): now 43%. The rest is the base rate (half of older women have diabetes) and weaker separation in that group |
 | B11 | The Git repo tracks eight old notebook copies (about 50 MB) and an unrelated `yield_df.csv`. | M1 | Fixed 2026-11-15: moved to a local archive/ folder that Git ignores |
-| B12 | With one shared cut-off, the M3 curves model catches 60 of 84 cases under 30 (71%), against 67 (80%) for the M2 model. It gives young women lower, more accurate risks, so more fall under the cut-off. | M3 | Open, target M5 (E31) |
+| B12 | With one shared cut-off, the M3 curves model catches 60 of 84 cases under 30 (71%), against 67 (80%) for the M2 model. It gives young women lower, more accurate risks, so more fall under the cut-off. | M3 | Fixed 2026-11-23 (M5): the cost-based cut-off of 0.17 catches 85% of cases under 30, with no age-specific rule |
 
 ## How to use this file
 

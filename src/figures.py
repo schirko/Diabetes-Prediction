@@ -103,9 +103,16 @@ def threshold_tradeoff(which: str = "baseline"):
     ax.plot(ts, spec, color=WARM, linewidth=2)
     ax.text(0.80, 22, "Cases caught\n(sensitivity)", color=INK, fontsize=10, ha="center")
     ax.text(0.80, 86, "Healthy women cleared\n(specificity)", color=INK, fontsize=10, ha="center", va="top")
-    for t, label in [(cut, "screening\ncut-off"), (0.5, "default\n0.50")]:
-        ax.axvline(t, color=MUTED, linewidth=1)
-        ax.text(t + 0.01, 3, label, color=INK, fontsize=9.5)
+    if which == "current":
+        marks = [(c["cutoff"], f"{r}\u00d7") for r, c in m["m5"]["costs"]["ratios"].items()] + [(0.5, "0.50")]
+        marks = [(t, lab) for t, lab in marks]
+        for t, label in marks:
+            ax.axvline(t, color=GREEN if label.endswith("\u00d7") else MUTED, linewidth=1)
+            ax.text(t + 0.008, 3, label, color=INK, fontsize=9.5)
+    else:
+        for t, label in [(cut, "screening\ncut-off"), (0.5, "default\n0.50")]:
+            ax.axvline(t, color=MUTED, linewidth=1)
+            ax.text(t + 0.01, 3, label, color=INK, fontsize=9.5)
     ax.set_xlabel("Cut-off: flag everyone whose predicted risk is at or above this")
     ax.set_ylabel("Percent")
     ax.set_ylim(0, 102)
@@ -280,6 +287,133 @@ def shapes():
     return fig
 
 
+def m4_contest():
+    """Milestone 4: each model's AUC minus the published model's, with the corrected 95% interval."""
+    t = pd.DataFrame(_metrics()["m4"]["table"]).T
+    t = t.drop(index="Curves (M3, as published)").sort_values("vs_published")
+    fig, ax = plt.subplots(figsize=(7.6, 4.2))
+    ypos = np.arange(len(t))
+    worse = (t["vs_high"] < 0).to_numpy()
+    for yy, (_, r), bad in zip(ypos, t.iterrows(), worse):
+        color = WARM if bad else GREEN
+        ax.hlines(yy, r["vs_low"] * 100, r["vs_high"] * 100, color=color, linewidth=2)
+        ax.scatter(r["vs_published"] * 100, yy, s=60, color=color, zorder=3, edgecolor="white", linewidth=1.5)
+        ax.text(5.6, yy, f"{r['auc']:.3f}", va="center", ha="right", color=INK, fontsize=10)
+    ax.axvline(0, color=INK, linewidth=1)
+    ax.text(0.2, len(t) - 0.35, "published model", color=INK, fontsize=9.5)
+    ax.text(5.6, len(t) - 0.35, "AUC", color=MUTED, fontsize=9.5, ha="right")
+    ax.set_yticks(ypos, t.index)
+    ax.set_xlim(-5.5, 6)
+    ax.set_ylim(-0.6, len(t) - 0.1)
+    ax.set_xlabel("AUC difference from the published model, in hundredths (bars: 95% interval)")
+    ax.set_title("No tuned model beats the published one")
+    ax.grid(axis="y", visible=False)
+    return fig
+
+
+def m5_rebalance():
+    """Milestone 5: rebalancing the training data does not help; it only distorts the risks."""
+    t = pd.DataFrame(_metrics()["m5"]["rebalancing"]).T
+    names = ["Published model", "Class weights", "SMOTE"]
+    t = t.loc[names]
+    fig, (a, b) = plt.subplots(1, 2, figsize=(8.6, 3.4), gridspec_kw={"width_ratios": [1.1, 1]})
+    ypos = np.arange(len(t))[::-1]
+    colors = [GREEN, WARM, WARM]
+    a.barh(ypos, t["false_alarms_for_85"], color=colors, height=0.55)
+    for yy, v in zip(ypos, t["false_alarms_for_85"]):
+        a.text(v + 2, yy, f"{v:.0f}", va="center", color=INK)
+    a.set_yticks(ypos, names)
+    a.set_xlim(0, 200)
+    a.set_xlabel("False alarms needed to catch 85% of cases")
+    a.set_title("Same ranking", fontsize=12)
+    a.grid(axis="y", visible=False)
+    b.scatter(t["mean_risk"] * 100, ypos, color=colors, s=70, zorder=3, edgecolor="white", linewidth=1.5)
+    for yy, v in zip(ypos, t["mean_risk"]):
+        b.text(v * 100 + 1.5, yy, f"{v * 100:.0f}%", va="center", color=INK)
+    b.axvline(_metrics()["prevalence"] * 100, color=INK, linewidth=1)
+    b.text(_metrics()["prevalence"] * 100 + 0.6, len(t) - 0.55, "real rate 35%", color=INK, fontsize=9.5)
+    b.set_yticks(ypos, [""] * len(t))
+    b.set_xlim(25, 55)
+    b.set_ylim(-0.6, len(t) - 0.2)
+    b.set_xlabel("Average predicted risk")
+    b.set_title("Distorted risks", fontsize=12)
+    b.grid(axis="y", visible=False)
+    fig.tight_layout()
+    return fig
+
+
+def m5_cost():
+    """Milestone 5: cost per 100 women at every cut-off, for each stated cost of a missed case."""
+    m5 = _metrics()["m5"]
+    grid = np.array(m5["costs"]["cost_curves"]["grid"])
+    n_all = m5["costs"]["ratios"]["2"]["cost_per_100"]["Test everybody"]
+    fig, axes = plt.subplots(1, 3, figsize=(10.2, 3.5), sharey=True)
+    for ax, (r, v) in zip(axes, m5["costs"]["ratios"].items()):
+        ax.plot(grid, m5["costs"]["cost_curves"][r], color=GREEN, linewidth=2)
+        ax.axhline(n_all, color=MUTED, linewidth=1, linestyle=(0, (4, 3)))
+        ax.axvline(m5["costs"]["old_cutoff"], color=WARM, linewidth=1, linestyle=(0, (4, 3)))
+        c = v["cutoff"]
+        y_at = v["cost_per_100"]["Cost-based cut-off"]
+        ax.scatter([c], [y_at], color=GREEN, s=70, zorder=3, edgecolor="white", linewidth=1.5)
+        ax.text(c + 0.02, y_at - 11, f"cut-off {c:.2f}", color=INK, fontsize=9.5)
+        ax.set_title(f"Missed case = {r}\u00d7", fontsize=12)
+        ax.set_xlabel("Cut-off")
+        ax.set_xlim(0, 0.9)
+        ax.set_ylim(0, 100)
+    axes[0].set_ylabel("Cost per 100 women\n(in false-alarm units)")
+    axes[0].text(0.88, n_all + 2, "test everybody", color=MUTED, fontsize=9, ha="right")
+    axes[0].text(m5["costs"]["old_cutoff"] + 0.015, 93, "old 85% rule", color=WARM, fontsize=9)
+    fig.tight_layout()
+    return fig
+
+
+def m5_decision_curve():
+    """Milestone 5: net benefit of the model against testing everybody or nobody."""
+    m5 = _metrics()["m5"]["costs"]
+    d = m5["decision_curve"]
+    fig, ax = plt.subplots(figsize=(7, 3.8))
+    ax.plot(d["pt"], d["model"], color=GREEN, linewidth=2.2)
+    ax.plot(d["pt"], d["all"], color=MUTED, linewidth=1.6, linestyle=(0, (4, 3)))
+    ax.axhline(0, color=INK, linewidth=1)
+    for r, v in m5["ratios"].items():
+        ax.axvline(v["cutoff"], color=GREEN, linewidth=0.8, alpha=0.6)
+        ax.text(v["cutoff"] + 0.007, 0.37, f"{r}\u00d7", color=INK, fontsize=9.5)
+    ax.text(0.5, 0.16, "Use the model", color=GREEN, fontsize=10, fontweight="bold")
+    ax.text(0.43, -0.05, "Test everybody", color=MUTED, fontsize=10)
+    ax.text(0.5, 0.012, "Test nobody", color=INK, fontsize=10)
+    ax.set_xlim(0.02, 0.8)
+    ax.set_ylim(-0.08, 0.42)
+    ax.set_xlabel("Cut-off (flag a woman at or above this risk)")
+    ax.set_ylabel("Net benefit per woman")
+    ax.set_title("Net benefit of the model against testing everybody or nobody")
+    return fig
+
+
+def m5_bands():
+    """Milestone 5: share of cases caught in each age band, old 85% rule against the cost-based cut-offs."""
+    b = _metrics()["m5"]["bands"]
+    bands = [r["band"] for r in b["old_cutoff"]]
+    series = [("Old 85% rule (0.28)", [r["sensitivity"] for r in b["old_cutoff"]], WARM)]
+    shades = {"2": "#9CCBB5", "5": GREEN, "10": "#15563A"}
+    for r, v in b["by_ratio"].items():
+        series.append((f"{r}\u00d7 cut-off ({_metrics()['m5']['costs']['ratios'][r]['cutoff']:.2f})",
+                       [x["sensitivity"] for x in v["at_cost_cutoff"]], shades[r]))
+    fig, ax = plt.subplots(figsize=(8.2, 3.9))
+    w = 0.2
+    for i, (name, vals, color) in enumerate(series):
+        xs = np.arange(len(bands)) + (i - 1.5) * w
+        ax.bar(xs, [v * 100 for v in vals], width=w * 0.92, color=color, label=name)
+        for x, v in zip(xs, vals):
+            ax.text(x, v * 100 + 1.2, f"{v * 100:.0f}", ha="center", fontsize=8.5, color=INK)
+    ax.set_xticks(np.arange(len(bands)), [f"Age {x}" for x in bands])
+    ax.set_ylim(0, 112)
+    ax.set_ylabel("Percent of cases caught")
+    ax.set_title("Women under 30: 62% to 95% of cases caught, depending on the cut-off")
+    ax.legend(loc="lower center", ncol=4, fontsize=8.5, frameon=False, bbox_to_anchor=(0.5, -0.32))
+    ax.grid(axis="x", visible=False)
+    return fig
+
+
 ALL = {
     "missing": missing_values,
     "lucky_split": lucky_split,
@@ -288,6 +422,10 @@ ALL = {
     "shapes": shapes,
     "age_fit": age_fit,
     "m3_models": m3_models,
+    "m4_contest": m4_contest,
+    "m5_rebalance": m5_rebalance,
+    "m5_cost": m5_cost,
+    "m5_bands": m5_bands,
     "strategies": strategy_comparison,
     "recovery": recovery,
     "spread": imputation_spread,

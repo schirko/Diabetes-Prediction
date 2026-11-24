@@ -192,7 +192,7 @@ footer { margin: 64px 0 40px; padding-top: 20px; border-top: 1px solid var(--lin
   <li><b>Clean</b>Zeros that really mean "not measured" are treated as gaps. Insulin and skin thickness, missing too often, are left out.</li>
   <li><b>Learn</b>The model learns how each measurement relates to diabetes. Glucose, weight and age may curve rather than follow a straight line.</li>
   <li><b>Test fairly</b>It is scored 50 times, always on women it hasn't seen, so the results aren't flattered by luck.</li>
-  <li><b>Decide</b>For a new woman it gives a risk. At or above the <abbr title="The risk at which someone is sent for a follow-up test">cut-off</abbr> ({{cut_pct}}), she is flagged for a follow-up test.</li>
+  <li><b>Decide</b>For a new woman it gives a risk. At or above the <abbr title="The risk at which someone is sent for a follow-up test">cut-off</abbr> ({{cut_pct}}), she is flagged for a follow-up test. The cut-off comes from a stated cost: here, a missed case is treated as {{pub_ratio}} times as bad as a false alarm.</li>
 </ol>
 
 <h2 id="try">Try the model</h2>
@@ -228,12 +228,16 @@ BMI and age are allowed to bend, so risk can level off or fall where the data sa
 <div class="panel cutbox">
   <div class="cutrow">
     <h3>Where should the cut-off go?</h3>
-    <span><button class="btn" style="padding:4px 12px;font-size:13.5px" data-cut="{{cut}}">Screening {{cut}}</button>
+    <span style="display:flex;gap:6px;flex-wrap:wrap">
+    <button class="btn" style="padding:4px 12px;font-size:13.5px" data-cut="{{r2_cut}}" title="A missed case is 2 times as bad as a false alarm">2&times; {{r2_cut}}</button>
+    <button class="btn primary" style="padding:4px 12px;font-size:13.5px" data-cut="{{r5_cut}}" title="A missed case is 5 times as bad as a false alarm (the page's default)">5&times; {{r5_cut}}</button>
+    <button class="btn" style="padding:4px 12px;font-size:13.5px" data-cut="{{r10_cut}}" title="A missed case is 10 times as bad as a false alarm">10&times; {{r10_cut}}</button>
+    <button class="btn" style="padding:4px 12px;font-size:13.5px" data-cut="{{cut85}}" title="The earlier rule: catch 85% of cases">Old 85% rule {{cut85}}</button>
     <button class="btn" style="padding:4px 12px;font-size:13.5px" data-cut="0.50">Default 0.50</button></span>
   </div>
   <p class="note" style="margin:4px 0 10px">Every cut-off is a trade. Lower it and more women with diabetes are caught, but
-  more healthy women get tests they don't need. Move the slider: the picture shows what happens to every 100 women screened.
-  Flagging everyone at or above <b id="cutval"></b>:</p>
+  more healthy women get tests they don't need. Move the slider, or pick a preset: <b>2&times;, 5&times; or 10&times;</b> means a missed case is that many times
+  as bad as a false alarm. The picture shows what happens to every 100 women screened. Flagging everyone at or above <b id="cutval"></b>:</p>
   <input type="range" id="cut" min="0.05" max="0.90" step="0.01" aria-label="Cut-off">
   <div class="dots" id="dots" role="img" aria-label="100 women"></div>
   <div class="dotkey">
@@ -272,11 +276,13 @@ is, see the <a href="docs/FINDINGS.html">findings</a>. Unfamiliar word? Try the 
   <p>For screening, what matters is how many women with diabetes are caught, and how many healthy women are sent for tests they
   don't need. With the usual cut-off of 50%, the model misses {{p100_fn_def}} of every {{p100_pos}} women with diabetes. Lowering
   the cut-off to {{cut_pct}} misses only {{p100_fn}}, but raises false alarms from {{p100_fp_def}} to {{p100_fp}} in every 100 women.
-  There is no free lunch: the right cut-off depends on what a missed case costs compared with an extra blood test.</p>
+  There is no free lunch: the right cut-off depends on what a missed case costs compared with an extra blood test. Story 8
+  shows how to turn that into a number.</p>
   <figure>
-    <img src="images/threshold.png" alt="Line chart: as the cut-off rises from 0 to 1, the share of cases caught falls and the share of healthy women cleared rises. The screening cut-off and the default 0.50 are marked.">
+    <img src="images/threshold.png" alt="Line chart: as the cut-off rises from 0 to 1, the share of cases caught falls and the share of healthy women cleared rises. The cut-offs for a missed case costing 10, 5 and 2 times a false alarm, and the default 0.50, are marked.">
     <figcaption><span class="howto"><b>How to read it:</b> move left to right as the cut-off gets stricter. The green line (cases
-    caught) falls and the orange line (healthy women correctly not flagged) rises. Every cut-off is a point on that trade.</span></figcaption>
+    caught) falls and the orange line (healthy women correctly not flagged) rises. Every cut-off is a point on that trade. The green
+    vertical lines are the cut-offs chosen from costs (story 8); the 5&times; line is the one the page uses.</span></figcaption>
   </figure>
 </div>
 
@@ -294,16 +300,18 @@ is, see the <a href="docs/FINDINGS.html">findings</a>. Unfamiliar word? Try the 
 
 <div class="story">
   <h3>4. Simple beats complicated here</h3>
-  <p>Nine kinds of model were compared on equal terms, from straight-line formulas to boosted decision trees. The winner is a
-  simple, explainable one that lets glucose, weight and age curve ({{auc}}, against {{auc_straight}} with straight lines). The more
-  complex methods did no better: with only 768 women, they have too little to learn from. It also beats a simple rule: flagging
-  everyone with a glucose of 140 or more finds {{rule_tp}} women with diabetes, and the model, raising about the same number of
-  false alarms, finds {{model_tp_rule}}.</p>
+  <p>Ten models went through a fair contest. Each could tune its own settings, but only on training women, so the test women
+  never influenced the result. The simple, explainable model the page uses (curves for glucose, weight and age) scored
+  {{m4_pub}}. None of the more complex methods beat it: a neural network, XGBoost, a random forest and a blend of four models
+  all scored between {{m4_low}} and {{m4_ens}}. With 768 women and six measurements, the limit is what the data can tell us,
+  not the choice of method. The model also beats a simple rule: flagging everyone with a glucose of 140 or more finds
+  {{rule_tp}} women with diabetes, and the model, raising about the same number of false alarms, finds {{model_tp_rule}}.</p>
   <figure>
-    <img src="images/m3_models.png" alt="Two dot charts comparing nine models. Curves for glucose, BMI and age scores highest on all women (0.853) and on women 45 and over (0.791). The straight-line model scores 0.838 and 0.744.">
-    <figcaption><span class="howto"><b>How to read it:</b> each dot is one kind of model; further right is better at telling women
-    who develop diabetes from those who don't (<abbr title="Chance the model ranks a woman who develops diabetes above one who doesn't. 0.5 is a coin flip; 1.0 is perfect.">AUC</abbr>).
-    The left panel is all women, the right panel women 45 and over. Orange is the earlier straight-line model.</span></figcaption>
+    <img src="images/m4_contest.png" alt="Chart comparing nine models with the published model. The tuned curves model is ahead by 0.002 with an interval crossing zero; every other model is behind, from 0.003 for the stacked ensemble to 0.025 for k-nearest neighbours, the only one whose interval lies wholly below zero.">
+    <figcaption><span class="howto"><b>How to read it:</b> each dot shows how much better (right) or worse (left) a model scored
+    than the published one, in hundredths of <abbr title="Chance the model ranks a woman who develops diabetes above one who doesn't. 0.5 is a coin flip; 1.0 is perfect.">AUC</abbr>.
+    The bar is the range the true difference probably lies in; if it crosses the black line, the difference could be zero.
+    Nothing sits clearly to the right.</span></figcaption>
   </figure>
 </div>
 
@@ -311,7 +319,7 @@ is, see the <a href="docs/FINDINGS.html">findings</a>. Unfamiliar word? Try the 
   <h3>5. Risk peaks around 50, then falls</h3>
   <p>In this data the diabetes rate climbs from 14% in women aged 21 to 24 to 71% at 50 to 54, then falls to 28% at 60 and over,
   partly because many women who would develop diabetes already have it by then. The first models drew a straight line through age
-  and kept predicting about 50% for the oldest women. Letting age curve fixed that: false alarms fell from {{fp_m2}} to {{fp_screen}}
+  and kept predicting about 50% for the oldest women. Letting age curve fixed that: with each model's cut-off set to catch 85% of cases, false alarms fell from {{fp_m2}} to {{fp_screen}}
   across all 768 women, and the share of healthy women 45 and over correctly not flagged rose from {{spec_old_m2}} to {{spec_old}}.</p>
   <figure>
     <img src="images/age_fit.png" alt="Line chart of the diabetes rate by five-year age group: it rises to 71% at 50 to 54, then falls to 28% at 60 and over. The straight-line model keeps predicting about 50% for the oldest groups; the curved model follows the fall.">
@@ -336,9 +344,57 @@ is, see the <a href="docs/FINDINGS.html">findings</a>. Unfamiliar word? Try the 
 <div class="story">
   <h3>7. The risks can be trusted, but not equally for everyone</h3>
   <p>When the model says 30%, about 30 in 100 such women did develop diabetes, so its numbers mean what they say. It is less sharp
-  for women 45 and over, partly because half of them have diabetes. And with one cut-off for everyone, it now catches {{sens_young}}
-  of cases among women under 30, down from {{sens_young_m2}} with the earlier model, because it gives young women lower, more accurate
-  risks. Setting cut-offs by age group is planned for Milestone 5.</p>
+  for women 45 and over, partly because half of them have diabetes. Under the old rule (catch 85% of all cases) it caught only
+  {{sens_young}} of cases among women under 30, down from {{sens_young_m2}} with the earlier model, because it gives young women lower,
+  more accurate risks. Choosing the cut-off from costs fixes most of that: at the page's {{r5_cut}} cut-off, {{r5_young}} of the cases
+  under 30 are caught. Separate cut-offs for each age group did no better (cost per 100 women, in false-alarm units:
+  {{band_each}} against {{band_single}} for one shared cut-off), because the risks are about equally accurate in every age group, so
+  the same cut-off is right for all of them.</p>
+  <figure>
+    <img src="images/m5_bands.png" alt="Grouped bars: share of cases caught in three age groups under four cut-offs. Under 30: 71% at the old rule, 62%, 85% and 95% at the 2, 5 and 10 times cut-offs. Ages 30 to 44 and 45 and over: 88% to 100% at the cost-based cut-offs.">
+    <figcaption><span class="howto"><b>How to read it:</b> each group of bars is one age group; each bar is the share of that group's
+    cases caught at one cut-off (orange is the old rule, greens are the cost-based cut-offs, darker means a lower cut-off). The
+    women under 30 are the ones who lose out when the cut-off is high.</span></figcaption>
+  </figure>
+</div>
+
+<div class="story">
+  <h3>8. Where the cut-off goes is a question of cost</h3>
+  <p>Statistics can say what each cut-off does. Only a person can say how bad a missed case is compared with an unnecessary blood
+  test. If a missed case is {{pub_ratio}} times as bad as a false alarm, the cheapest cut-off is 1 divided by 6, about {{r5_cut}}, and
+  that is what the page uses. The old rule (catch 85% of cases) quietly assumed a missed case is only about {{old_ratio}} times as bad.
+  Per 100 women screened, a cost-based cut-off does this:</p>
+  <table class="road" style="margin:10px 0 14px">
+    <tr><th>A missed case is...</th><th>Cut-off</th><th>Flagged</th><th>Caught</th><th>Missed</th><th>False alarms</th></tr>
+    <tr><td>2&times; a false alarm</td><td>{{r2_cut}}</td><td>{{r2_flag}}</td><td>{{r2_tp}} of 35</td><td>{{r2_fn}}</td><td>{{r2_fp}}</td></tr>
+    <tr><td><b>5&times; a false alarm (the page's default)</b></td><td><b>{{r5_cut}}</b></td><td><b>{{r5_flag}}</b></td><td><b>{{r5_tp}} of 35</b></td><td><b>{{r5_fn}}</b></td><td><b>{{r5_fp}}</b></td></tr>
+    <tr><td>10&times; a false alarm</td><td>{{r10_cut}}</td><td>{{r10_flag}}</td><td>{{r10_tp}} of 35</td><td>{{r10_fn}}</td><td>{{r10_fp}}</td></tr>
+  </table>
+  <p>The cost is measured in false-alarm units: a missed case counts as 5, a false alarm as 1. At 5&times;, flagging by the
+  cost-based cut-off costs {{r5_cost}} per 100 women. Testing everybody costs {{cost5_all}}, the old rule {{cost5_old}}, a simple
+  glucose-of-140 rule {{cost5_glu}}, and testing nobody {{cost5_none}}. The curves are flat near their lowest point, so the cut-off
+  does not need to be exact, but they are not flat everywhere: the wrong cost ratio means a visibly worse cut-off.</p>
+  <figure>
+    <img src="images/m5_cost.png" alt="Three line charts of cost per 100 women against the cut-off, for a missed case costing 2, 5 and 10 times a false alarm. Each curve dips to a flat minimum near the cost-based cut-off, 0.33, 0.17 and 0.09, and rises steeply above it. A dashed line marks the cost of testing everybody, 65.">
+    <figcaption><span class="howto"><b>How to read it:</b> each panel assumes a different cost for a missed case. The green line is the
+    total cost per 100 women at every cut-off, so lower is better; the dot is the cost-based cut-off. The orange dashed line is the
+    old 85% rule; the grey dashed line is the cost of simply testing everybody.</span></figcaption>
+  </figure>
+</div>
+
+<div class="story">
+  <h3>9. Rebalancing the data doesn't help</h3>
+  <p>Only 35% of the women have diabetes, and a common recipe for that kind of lopsided data is to rebalance it: give the rarer
+  group more weight, or invent extra cases for the model to learn from (SMOTE). It did not help here. The model's ranking of women
+  was the same, and catching 85% of cases still took about {{fa_pub}} false alarms ({{fa_cw}} with class weights, {{fa_smote}} with
+  SMOTE). What changed is that the risks became untrustworthy: the average predicted risk rose from {{risk_pub}} to {{risk_cw}} and
+  {{risk_smote}}, when the real rate is 35%. Moving the cut-off does everything rebalancing does, without distorting the risks.</p>
+  <figure>
+    <img src="images/m5_rebalance.png" alt="Left: bars of false alarms needed to catch 85% of cases, about 153 for the published model, class weights and SMOTE alike. Right: average predicted risk, 35% for the published model, 44% with class weights and 43% with SMOTE, against a real rate of 35%.">
+    <figcaption><span class="howto"><b>How to read it:</b> on the left, the bars are the same length, so rebalancing does not catch
+    more cases for the same false alarms. On the right, the published model's average risk matches the real 35% (black line); the
+    rebalanced models' average risks sit well above it.</span></figcaption>
+  </figure>
 </div>
 
 <h2 id="read">Read more</h2>

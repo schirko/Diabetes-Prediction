@@ -62,6 +62,18 @@ def test_every_missing_data_strategy_runs_and_never_sees_a_gap():
         assert np.isfinite(p).all() and ((p >= 0) & (p <= 1)).all(), name
 
 
+def test_corrected_ttest():
+    """With no correction term it must equal an ordinary paired t-test; the correction can only widen it."""
+    from scipy import stats
+    from src.contest import corrected_ttest
+    rng = np.random.default_rng(0)
+    a, b = rng.normal(0.85, 0.02, 15), rng.normal(0.84, 0.02, 15)
+    plain = corrected_ttest(a, b, n_train=1, n_test=0)
+    assert math.isclose(plain["p"], stats.ttest_rel(a, b).pvalue, rel_tol=1e-9)
+    assert corrected_ttest(a, b, n_train=614, n_test=154)["p"] > plain["p"]
+    assert corrected_ttest(a, a, 614, 154)["diff"] == 0
+
+
 def test_confusion_counts_add_up():
     y = np.array([1, 1, 0, 0, 1])
     p = np.array([0.9, 0.2, 0.6, 0.1, 0.5])
@@ -80,3 +92,26 @@ def test_saved_threshold_meets_the_screening_target():
     published = json.loads((ROOT / "reports" / "model.json").read_text())
     assert published["features"] == m["current"]["features"]
     assert m["threshold_default"]["tp"] + m["threshold_default"]["fn"] == m["cases"]
+
+
+def test_cost_based_cutoff_formula():
+    from src import decision
+    assert decision.cutoff_for_ratio(5) == 0.17
+    assert decision.cutoff_for_ratio(2) == 0.33
+    assert decision.cutoff_for_ratio(10) == 0.09
+    assert abs(decision.implied_ratio(0.28) - 18 / 7) < 1e-9
+
+
+def test_published_per_100_counts_add_up():
+    m5 = json.loads((ROOT / "reports" / "metrics.json").read_text())["m5"]
+    for v in m5["costs"]["ratios"].values():
+        assert sum(v["per_100"][k] for k in ("tp", "fn", "fp", "tn")) == 100
+    p = m5["published"]
+    assert sum(p["per_100"][k] for k in ("tp", "fn", "fp", "tn")) == 100
+
+
+def test_cost_based_cutoff_is_near_the_cheapest():
+    m5 = json.loads((ROOT / "reports" / "metrics.json").read_text())["m5"]
+    for v in m5["costs"]["ratios"].values():
+        low, high = v["empirical_best"]["low"], v["empirical_best"]["high"]
+        assert low - 1e-9 <= v["cutoff"] <= high + 1e-9

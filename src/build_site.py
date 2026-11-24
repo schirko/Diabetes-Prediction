@@ -43,6 +43,10 @@ NOTEBOOK_BLURBS = {
                        "and why the published model now leaves insulin and skinfold out.",
     "05_curved_effects": "Why the model over-flagged older women, nine curved and boosted models compared, "
                          "insulin's second hearing, and the curved model the page now runs.",
+        "07_decisions_and_costs": "Does rebalancing the data help, what a missed case costs, where the cut-off should go, and "
+                              "whether age groups need their own.",
+    "06_model_contest": "Nine model types tuned fairly with nested cross-validation, a corrected test of the "
+                        "differences, a stacked ensemble, and why the page keeps its model.",
 }
 DOCS = ["OVERVIEW", "GLOSSARY", "FINDINGS", "MILESTONES", "ENHANCEMENTS_AND_BUGS", "DECISIONS"]
 
@@ -163,11 +167,39 @@ def tokens(m: dict) -> dict:
     best_recovery = max(v["r2"] for v in m2["recovery"]["Insulin"].values())
     b10 = m["m3"]["b10"]
     young = next(b for b in cur["by_age"] if b["band"].startswith("21"))
-    tp, fn, fp, tn = per_100([scr["tp"], scr["fn"], scr["fp"], scr["tn"]])
+    m5 = m["m5"]
+    pub = m5["published"]                          # the published cut-off now comes from a stated cost (M5), not the 85% rule
+    tp, fn, fp, tn = per_100([pub["counts"]["tp"], pub["counts"]["fn"], pub["counts"]["fp"], pub["counts"]["tn"]])
     _, fn_d, fp_d, _ = per_100([dft["tp"], dft["fn"], dft["fp"], dft["tn"]])
     p100 = {"p100_tp": tp, "p100_fn": fn, "p100_fp": fp, "p100_tn": tn, "p100_pos": tp + fn, "p100_neg": fp + tn,
             "p100_fn_def": fn_d, "p100_fp_def": fp_d}
-    return {k: str(v) for k, v in p100.items()} | {
+    ratio_rows = {}
+    for r, v in m5["costs"]["ratios"].items():
+        ctp, cfn, cfp, ctn = per_100([v["counts"]["tp"], v["counts"]["fn"], v["counts"]["fp"], v["counts"]["tn"]])
+        ratio_rows |= {f"r{r}_cut": f"{v['cutoff']:.2f}", f"r{r}_tp": str(ctp), f"r{r}_fn": str(cfn),
+                       f"r{r}_fp": str(cfp), f"r{r}_tn": str(ctn), f"r{r}_flag": str(ctp + cfp),
+                       f"r{r}_cost": f"{v['cost_per_100']['Cost-based cut-off']:.0f}",
+                       f"r{r}_young": pct(m5["bands"]["by_ratio"][r]["at_cost_cutoff"][0]["sensitivity"])}
+    reb, c5 = m5["rebalancing"], m5["costs"]["ratios"]["5"]
+    pol5 = m5["bands"]["by_ratio"]["5"]["policies"]
+    extra = ratio_rows | {
+        "pub_ratio": str(pub["ratio"]), "cut85": f"{scr['threshold']:.2f}", "cut85_pct": pct(scr["threshold"]),
+        "old_ratio": f"{m5['costs']['old_implied_ratio']:.1f}",
+        "cost5_old": f"{c5['cost_per_100']['Old rule (catch 85%)']:.0f}",
+        "cost5_all": f"{c5['cost_per_100']['Test everybody']:.0f}",
+        "cost5_glu": f"{c5['cost_per_100']['Glucose of 140 or more']:.0f}",
+        "cost5_none": f"{c5['cost_per_100']['Test nobody']:.0f}",
+        "fa_pub": f"{reb['Published model']['false_alarms_for_85']:.0f}",
+        "fa_cw": f"{reb['Class weights']['false_alarms_for_85']:.0f}",
+        "fa_smote": f"{reb['SMOTE']['false_alarms_for_85']:.0f}",
+        "risk_cw": pct(reb["Class weights"]["mean_risk"]), "risk_smote": pct(reb["SMOTE"]["mean_risk"]),
+        "risk_pub": pct(reb["Published model"]["mean_risk"]),
+        "band_single": f"{pol5['Single cost-based cut-off']['cost_per_100']:.0f}",
+        "band_each": f"{pol5['Cheapest per band']['cost_per_100']:.0f}",
+        "slope_45": f"{m5['bands']['calibration'][2]['slope']:.2f}",
+        "slope_30": f"{m5['bands']['calibration'][0]['slope']:.2f}",
+    }
+    return {k: str(v) for k, v in p100.items()} | extra | {
         "project_name": PROJECT_NAME, "slug": SLUG, "repo_url": REPO_URL,
         "built": f"{dt.date.today():%B %d, %Y}",
         "lucky_mean": pct(ls["mean"]), "lucky_min": pct(ls["min"]), "lucky_max": pct(ls["max"]),
@@ -178,7 +210,7 @@ def tokens(m: dict) -> dict:
         "rec_insulin": pct(best_recovery), "flips": str(m2["spread"]["flips_total"]),
         "flips_pct": pct(m2["spread"]["flips_total"] / m["n"]),
         "sens_default": pct(dft["sensitivity"]), "sens_screen": pct(scr["sensitivity"]),
-        "miss_default": pct(1 - dft["sensitivity"]), "cut": f"{scr['threshold']:.2f}",
+        "miss_default": pct(1 - dft["sensitivity"]), "cut": f"{pub['cutoff']:.2f}",
         "fn_default": str(dft["fn"]), "fp_default": str(dft["fp"]), "fp_screen": str(scr["fp"]),
         "insulin_missing": pct(m["missing"]["Insulin"] / m["n"]),
         "insulin_n": str(m["missing"]["Insulin"]), "skin_n": str(m["missing"]["SkinThickness"]),
@@ -189,9 +221,12 @@ def tokens(m: dict) -> dict:
         "fp_m2": str(b10["straight"]["all"]["fp"]), "spec_old_m2": pct(b10["straight"]["age_45plus"]["specificity"]),
         "auc_old": f"{old['auc']:.2f}", "auc_young": f"{young['auc']:.2f}",
         "sens_young": pct(b10["curves"]["under_30"]["sensitivity"]),
-        "cut_pct": pct(scr["threshold"]),
+        "cut_pct": pct(pub["cutoff"]),
         "auc_straight": f"{m['m3']['comparison']['Straight lines (Milestone 2)']['auc']:.2f}",
         "rule_tp": str(m["glucose_140_rule"]["tp"]), "model_tp_rule": str(cur["vs_glucose_rule"]["tp"]),
+        "m4_pub": f"{m['m4']['table']['Curves (M3, as published)']['auc']:.3f}",
+        "m4_ens": f"{m['m4']['table']['Stacked ensemble']['auc']:.3f}",
+        "m4_low": f"{min(v['auc'] for k, v in m['m4']['table'].items() if k not in ('Curves, tuned', 'Curves (M3, as published)', 'Stacked ensemble', 'k-nearest neighbours')):.3f}",
         "sens_young_m2": pct(b10["straight"]["under_30"]["sensitivity"]),
     }
 
@@ -250,7 +285,8 @@ def build():
     data = {
         "model": {k: model[k] for k in ["features", "median", "base_logit", "grid", "contribution", "range"]},
         "labels": LABELS,
-        "cut": metrics["current"]["threshold_screening"]["threshold"],
+        "cut": metrics["m5"]["published"]["cutoff"],
+        "presets": {r: v["cutoff"] for r, v in metrics["m5"]["costs"]["ratios"].items()},
         "oof": {"p": [round(float(v), 6) for v in oof["p_current"]], "y": [int(v) for v in oof["outcome"]]},
         "check": model["check"],
     }
@@ -263,6 +299,11 @@ def build():
     if left:
         raise SystemExit(f"Unfilled placeholders in template: {sorted(set(left))}")
     (out / "index.html").write_text(page, encoding="utf-8")
+
+    # Every image the page refers to must exist.
+    for src in re.findall(r'src="(images/[^"]+)"', page):
+        if not (out / src).exists():
+            raise SystemExit(f"index.html refers to {src}, which was not generated")
 
     # Portfolio rule: every generated page must carry the shared back bar, favicons and no-index tag.
     for f in out.rglob("*.html"):

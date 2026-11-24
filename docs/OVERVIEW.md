@@ -3,7 +3,7 @@
 This page explains the whole project without statistics. Words in **bold** are explained in the
 [glossary](GLOSSARY.md). For the full list of conclusions, see the [findings](FINDINGS.md).
 
-Last updated: 2026-11-16, after Milestone 3.
+Last updated: 2026-11-23, after Milestone 5.
 
 ## The question
 
@@ -52,24 +52,28 @@ It gives back a risk: the chance, out of 100, that a woman like her is diagnosed
 Then a **cut-off** turns the risk into a decision. Anyone at or above the cut-off is sent for a follow-up test. The
 project page lets you try the model yourself and move the cut-off.
 
+Where should the cut-off go? That depends on how bad a missed case is compared with an unnecessary test. The project
+says a missed case is 5 times as bad, which puts the cut-off at 17%. The page also shows 2 times and 10 times.
+
 ## How good is it, in everyday terms?
 
 Picture 100 women like the ones in this data. About 35 of them will develop diabetes.
 
-With the screening cut-off the project uses (a risk of 28% or more):
+With the cut-off the project uses (a risk of 17% or more, from a missed case counting 5 times a false alarm):
 
 | | Women |
 |---|---|
-| Have diabetes and are flagged for a test | 30 |
-| Have diabetes but are missed | 5 |
-| Healthy but flagged anyway (false alarms) | 20 |
-| Healthy and correctly not flagged | 45 |
+| Have diabetes and are flagged for a test | 33 |
+| Have diabetes but are missed | 2 |
+| Healthy but flagged anyway (false alarms) | 30 |
+| Healthy and correctly not flagged | 35 |
 
-So the model catches 30 of the 35 women who need help. The price is 20 unnecessary follow-up tests. Of the 50 women
-it flags, 30 really do have diabetes.
+So the model catches 33 of the 35 women who need help. The price is 30 unnecessary follow-up tests. Of the 63 women
+it flags, 33 really do have diabetes.
 
-The cut-off is a choice, not a fact. With a stricter cut-off of 50%, false alarms fall from 20 to 9, but missed cases
-rise from 5 to 14. Which is better depends on what a missed case costs compared with an extra blood test.
+The cut-off is a choice, not a fact. If a missed case is only 2 times as bad (cut-off 33%), the model catches 28 of 35
+with 17 false alarms. If it is 10 times as bad (cut-off 9%), it catches 34 with 39 false alarms. At the usual 50%
+cut-off, false alarms fall to 9 but 14 cases are missed.
 
 Another way to put its skill: pick one woman who went on to develop diabetes and one who didn't. About 85 times
 out of 100, the model gives the first woman the higher risk. That number is called the **AUC** (0.85). A coin flip
@@ -91,9 +95,10 @@ These are patterns in this group of women, not proof that one thing causes anoth
 
 1. **A fair test changes the story.** The honest accuracy of the original method is 77%, not 81%, and accuracy was
    the wrong measure anyway.
-2. **A simple, carefully built model is the best one here.** Nine kinds of model were compared on equal terms. The
-   winner is a straightforward one that lets three measurements curve. More complex methods did not do better on
-   768 women.
+2. **A simple, carefully built model is the best one here.** Ten models were compared in a fair contest, each given
+   the chance to tune its own settings without peeking at the test women. The winner is a straightforward one that
+   lets three measurements curve. Neural networks, boosted trees and blends of several models did not do better on
+   768 women: every sensible method scores about the same, because the limit is what six measurements can tell us.
 3. **Insulin and skin thickness can be dropped.** They are missing too often, can't be reliably filled in, and add
    nothing even when they were measured.
 4. **The model's risks can be trusted** for women like these: when it says 30%, about 30 in 100 such women had
@@ -101,7 +106,10 @@ These are patterns in this group of women, not proof that one thing causes anoth
 5. **It beats a simple rule.** Flagging everyone with a glucose of 140 or more finds 135 of the 268 women with
    diabetes. The model, raising about the same number of false alarms, finds 156.
 6. **It is less sharp for older women**, partly because half of them have diabetes. And with one cut-off for
-   everyone, it catches fewer cases among women under 30 than the earlier model did. Both are being worked on.
+   everyone, it first caught fewer cases among women under 30 than the earlier model did. Choosing the cut-off from
+   costs fixed that: 85% of their cases are caught at the 17% cut-off.
+7. **Rebalancing the data doesn't help.** Giving the smaller group extra weight, or inventing extra cases, finds no
+   more cases for the same false alarms, and it makes the risks too high. Moving the cut-off does the same job.
 
 ## What it can't tell you
 
@@ -112,11 +120,8 @@ These are patterns in this group of women, not proof that one thing causes anoth
 
 ## What's next
 
-The project is planned as ten **milestones**. Three are done. The next ones ask:
+The project is planned as ten **milestones**. Five are done. The next ones ask:
 
-- **Milestone 4:** in a fair, fully tuned contest, does any other kind of model win?
-- **Milestone 5:** where should the cut-off go, given the real costs of missed cases and extra tests? Should it differ
-  by age?
 - **Milestone 6:** for any one woman, why did the model give her that number?
 - **Milestones 7 to 10:** how sure is each estimate; does it work on other populations; are there hidden groups in
   the data; and production polish.

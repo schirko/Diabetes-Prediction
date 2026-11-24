@@ -30,10 +30,20 @@ PLAIN = {
     "03_thresholds_and_calibration.ipynb":
         "A risk is only useful once you choose a cut-off for acting on it. Lowering the cut-off to 0.24 catches 85% of "
         "cases instead of 57%, at the cost of more false alarms. The risks themselves can be trusted, but the model "
-        "works worst for women 45 and over.",
+        "works worst for women 45 and over. (Milestone 5, notebook 07, later replaces the 85% rule with a cut-off "
+        "chosen from costs.)",
     "04_missing_data.ipynb":
         "Half the insulin readings are missing. No method of filling them in helps, and the guesses can change the "
         "screening decision for 53 women, so the model now leaves insulin and skin thickness out.",
+    "07_decisions_and_costs.ipynb":
+        "Rebalancing the data (class weights, SMOTE) does nothing a different cut-off can't, and it distorts the "
+        "risks. What decides the cut-off is how bad a missed case is compared with an unnecessary test. At five times "
+        "as bad the cut-off is 17%; it catches 33 of every 35 cases, with 30 false alarms per 100 women. The same "
+        "cut-off works for every age group, which also fixes the drop in cases caught among women under 30.",
+    "06_model_contest.ipynb":
+        "Nine kinds of model were each given a fair chance: their settings were tuned automatically, on data kept "
+        "apart from the test. None beat the simple curved model the page already uses, and combining several models "
+        "didn't help either. The page keeps its model.",
     "05_curved_effects.ipynb":
         "The model over-flagged older women because it assumed risk keeps rising with age, when it actually peaks "
         "around 50. Letting age, glucose and BMI curve fixed much of this: 40 fewer false alarms overall, and twice "
@@ -764,6 +774,361 @@ print("Web page arithmetic vs scikit-learn, largest difference:", abs(check - ex
                   "measurement contributes.",
             next="Milestone 4 gives every model type a fair, tuned contest with nested cross-validation, now with "
                  "the curves model as the one to beat.",
+        ),
+    ],
+)
+
+# ---------------------------------------------------------------- notebook 6 (Milestone 4)
+build(
+    "06_model_contest.ipynb",
+    "6. A fair contest: does any tuned model beat the curves?",
+    "Milestones 1 to 3 compared models using mostly default settings, which can be unfair to models that need "
+    "tuning, such as support vector machines, boosted trees and neural networks. This notebook gives nine model "
+    "types a properly tuned contest (E12), tests the differences formally (E13), tries combining models into one "
+    "(E14), and decides whether the published curves model stays.",
+    [
+        dict(
+            h="6.1 How the contest stays fair",
+            look="A set-up where tuning can't flatter any model, and every model faces exactly the same test.",
+            code="""
+from src.data import load_data, FEATURES
+from src.modeling import current_features
+from src import contest
+from src import figures
+
+X, y = load_data()
+Xc = X[current_features(FEATURES)]              # the same six inputs for every model
+print("Outer splits (scoring):", contest.OUTER_FOLDS, "folds x", contest.OUTER_REPEATS, "repeats")
+print("Inner splits (tuning): ", contest.INNER_FOLDS, "folds, inside each outer training set")
+print("Tuning trials per model per outer split:", contest.N_TRIALS)
+for name, (_, space) in contest.contestants().items():
+    print(f"- {name:28s} {'tuned' if space else 'fixed settings'}")""",
+            read="Most models have settings (hyperparameters) that must be chosen, such as how many neighbours to "
+                 "consult or how deep a tree may grow. Tuning means trying many settings and keeping the best. The "
+                 "danger is choosing settings that suit the test women by luck. Nested cross-validation prevents it: "
+                 "the outer splits score each model, and inside each outer training set a second, inner split is "
+                 "used only for tuning. Optuna does the tuning, trying 30 combinations per model per outer split and "
+                 "learning from earlier tries which areas look promising.",
+            means="Ten contestants face the same 15 outer splits. Two are not tuned: the published curves model, "
+                  "exactly as on the page, and a stacked ensemble whose members use settings fixed in advance. The "
+                  "other eight are tuned, including the curves model itself, so it gets no unfair advantage over "
+                  "the rest.",
+            next="Run the contest. It takes several minutes, so the results are saved and reloaded here.",
+        ),
+        dict(
+            h="6.2 The league table",
+            look="Each model's score on women it never saw, with an honest interval around it.",
+            code="""
+# Reloads reports/m4_contest.json if it exists; pass rerun=True to run all 150 tuned fits again (several minutes).
+results = contest.run_contest(Xc, y)
+table = contest.league_table(results, Xc, y)
+table[["auc", "auc_low", "auc_high", "brier", "auc_45plus", "seconds"]]""",
+            read="`auc` is the average over the 15 outer splits, with `auc_low` and `auc_high` as its 95% interval. "
+                 "`brier` measures how close the predicted risks are to what happened (lower is better). "
+                 "`auc_45plus` is the AUC among women 45 and over. `seconds` is how long the whole nested run took "
+                 "for that model.",
+            means="The curves models lead: tuned 0.854, published 0.852. Then the stacked ensemble at 0.849, the "
+                  "support vector machine and random forest at 0.840, straight lines at 0.839, XGBoost 0.837, the "
+                  "neural network 0.835, gradient boosting 0.832 and k-nearest neighbours 0.827. The intervals are "
+                  "wide (about 0.81 to 0.89) and overlap heavily: with 768 women, every model's score is uncertain "
+                  "by several hundredths. The curves models also have the best Brier scores and the best AUC for "
+                  "older women.",
+            next="Overlapping intervals don't settle it, because every model faced the same splits. Compare each "
+                 "one with the published model split by split.",
+        ),
+        dict(
+            h="6.3 Is anything really better? The corrected test",
+            look="For each model, the difference from the published model, and whether chance can explain it.",
+            code="""
+display(table[["vs_published", "vs_low", "vs_high", "p_value", "wins"]].drop(index=contest.PUBLISHED))
+figures.m4_contest();""",
+            read="`vs_published` is the average AUC difference from the published model on the same 15 splits, with "
+                 "its 95% interval (`vs_low` to `vs_high`). `p_value` is the chance of a difference at least this "
+                 "large if the two models were really equal; below 0.05 is the usual bar. `wins` is the share of "
+                 "splits where the model beat the published one. In the chart, a bar that crosses the black line "
+                 "means the difference could be zero.",
+            means="Nothing beats the published model. The tuned curves model is ahead by 0.002, but its interval "
+                  "runs from -0.003 to +0.007 and p is 0.36: indistinguishable. Every other model is behind, by 0.003 "
+                  "(the ensemble) to 0.025 (k-nearest neighbours). Only k-nearest neighbours is clearly worse "
+                  "(p = 0.02); the rest are probably worse, losing on 73% to 93% of splits, but the test can't rule "
+                  "out chance for any single one of them.",
+            next="The test used here is a corrected one. See why the correction matters, using the earlier claim "
+                 "that curves beat straight lines.",
+        ),
+        dict(
+            h="6.4 Why the correction matters",
+            look="The curves-versus-straight-lines comparison from Milestone 3, re-tested with a naive t-test and "
+                 "with the corrected one.",
+            code="""
+import numpy as np
+from scipy import stats
+curves, straight = np.array(results[contest.PUBLISHED]["auc"]), np.array(results["Straight lines, tuned"]["auc"])
+n_test = len(y) / contest.OUTER_FOLDS
+print(f"Curves ahead by {np.mean(curves - straight):.3f} AUC, winning {np.mean(curves > straight):.0%} of splits")
+print(f"Naive paired t-test:      p = {stats.ttest_rel(curves, straight).pvalue:.3f}")
+print(f"Corrected resampled test: p = {contest.corrected_ttest(curves, straight, len(y) - n_test, n_test)['p']:.3f}")""",
+            read="A naive t-test treats the 15 splits as 15 independent experiments. They aren't: each pair of "
+                 "training sets shares most of its women, so the scores move together and look more consistent than "
+                 "they really are. The corrected test (Nadeau and Bengio, 2003) widens the uncertainty to allow for "
+                 "that overlap.",
+            means="The naive test says the curves' lead over straight lines (0.013, winning 87% of splits) is "
+                  "convincing (p = 0.006). The corrected test says it is suggestive, not proven (p = 0.16). Milestone "
+                  "3's conclusion stands in direction, with the gain consistent across splits and concentrated in "
+                  "older women, but it is recorded in the findings as likely rather than firm. This is the main "
+                  "reason to use a corrected test: an uncorrected one would have made most of the contest look "
+                  "decisive too.",
+            next="Check whether tuning found stable settings, or wandered.",
+        ),
+        dict(
+            h="6.5 What did tuning choose?",
+            look="Whether the best settings are consistent from split to split. Stable choices suggest a real "
+                 "optimum; scattered ones suggest the setting barely matters.",
+            code="""
+for name in ["Curves, tuned", "Support vector machine", "XGBoost"]:
+    print(name)
+    display(contest.tuned_settings(results, name).describe().loc[["min", "50%", "max"]])""",
+            read="Each table summarises the settings Optuna chose in the 15 outer splits: the smallest, the middle "
+                 "(50%) and the largest. For the curves model, `C` controls smoothing (smaller means smoother curves) "
+                 "and `n_knots` how many places a curve may bend.",
+            means="The curves model chose stronger smoothing than the published model in every split (C between "
+                  "0.01 and 0.16, against 0.3 on the page), and 3 bend points rather than 4 in 9 of the 15 splits. "
+                  "In other words, slightly smoother curves are preferred, which fits the suspicion that BMI's flat "
+                  "stretch is noise. The support "
+                  "vector machine's C ranged from 0.02 to 96, meaning its score barely depends on it. XGBoost almost "
+                  "always chose depth 2, very shallow trees, which behave much like adding up one effect per input: "
+                  "the same structure as the curves model.",
+            next="See whether combining model types helps.",
+        ),
+        dict(
+            h="6.6 Does combining models help? (E14)",
+            look="Whether a stacked ensemble, which blends four different model types, beats its best member.",
+            code="""
+from src.contest import stacked_ensemble
+print("Members:", ", ".join(name for name, _ in stacked_ensemble().estimators), "| combined by: logistic regression")
+table.loc[[contest.PUBLISHED, "Stacked ensemble"], ["auc", "brier", "auc_45plus", "vs_published", "p_value"]]""",
+            read="Stacking trains four models (the curves model, a support vector machine, a random forest and "
+                 "gradient boosting), then a final logistic regression learns how much to trust each one's risk. "
+                 "The final step learns from predictions the members made on data they hadn't seen, so it isn't "
+                 "fooled by their over-confidence.",
+            means="The ensemble scores 0.849, slightly below the curves model alone (0.852), with a worse Brier "
+                  "score. Blending only helps when the members get different women wrong; here they mostly agree, "
+                  "and the weaker members dilute the best one. It also takes 17 times longer to run and is far "
+                  "harder to explain.",
+            next="Make the decision.",
+        ),
+        dict(
+            h="6.7 Decision: keep the published model",
+            look="The case for and against changing the page's model.",
+            code="""
+table.loc[[contest.PUBLISHED, "Curves, tuned", "Stacked ensemble", "Support vector machine"],
+          ["auc", "auc_low", "auc_high", "brier", "auc_45plus", "vs_published", "p_value"]]""",
+            read="The published model against the three closest rivals, on every measure the contest produced.",
+            means="Decision D14: the page keeps the curves model from Milestone 3. The tuned version's 0.002 gain is "
+                  "within noise, and switching would change every number on the page for no real improvement. The "
+                  "preference for smoother curves is noted for Milestone 6, which looks at what the model does with "
+                  "each input. The bigger lesson is about the data: on 768 women and six inputs, every reasonable "
+                  "method lands between 0.83 and 0.85. The ceiling is set by the information in the measurements, "
+                  "not by the choice of algorithm.",
+            next="Milestone 5 turns from ranking to deciding: where the cut-off should go once the costs of missed "
+                 "cases and false alarms are stated, and whether different age groups need different cut-offs (B12).",
+        ),
+    ],
+)
+
+# ---------------------------------------------------------------- notebook 7
+build(
+    "07_decisions_and_costs.ipynb",
+    "7. Deciding: rebalancing, costs and the cut-off",
+    "Until now the project asked how well the model ranks women by risk. Screening needs a decision: at what risk do we "
+    "send a woman for a follow-up test? This notebook asks three questions. Does rebalancing the data, a standard "
+    "remedy when one group is smaller, help (E15)? What does each cut-off cost, once we say how bad a missed case is "
+    "compared with an unnecessary test (E16)? And do different age groups need different cut-offs (E31, the fix for B12)?",
+    [
+        dict(
+            h="7.1 The set-up",
+            look="How lopsided the two groups are, and what the page used before this milestone.",
+            code="""
+import json
+import numpy as np
+from src.data import load_data, FEATURES
+from src.modeling import current_features
+from src import decision, figures
+
+X, y = load_data()
+Xc = X[current_features(FEATURES)]
+m5 = json.load(open("../reports/metrics.json"))["m5"]
+print("Women with diabetes:", int(y.sum()), "| without:", int((y == 0).sum()), f"| share with diabetes: {y.mean():.0%}")
+print("Old rule: the highest cut-off that still catches 85% of cases =", m5["costs"]["old_cutoff"])""",
+            read="The counts are the whole data: 268 women with diabetes and 500 without. The old rule was set in Milestone 1: "
+                 "pick the highest cut-off that still catches at least 85% of the real cases.",
+            means="The groups are lopsided but not extremely so: about one woman in three has diabetes. The 85% target was a "
+                  "round number chosen early, without any statement of what it costs to miss a case. This notebook replaces it "
+                  "with a reason.",
+            next="First, the usual remedy for lopsided groups: rebalance the training data.",
+        ),
+        dict(
+            h="7.2 Does rebalancing help? (E15)",
+            look="Whether giving the smaller group more weight, or inventing extra training cases for it, finds more cases for "
+                 "the same number of false alarms.",
+            code="""
+reb = decision.compare_rebalancing(Xc, y)
+import pandas as pd
+table = pd.DataFrame(reb["table"]).T
+table[["auc", "brier", "calibration_slope", "mean_risk", "sensitivity_at_half", "false_alarms_for_85"]]""",
+            read="Three versions of the published model, scored on the same 50 splits. `Class weights` makes each woman with "
+                 "diabetes count about twice as much as a healthy woman when the model learns. `SMOTE` (synthetic minority "
+                 "over-sampling) invents new cases by blending two real ones, inside each training set only, so the test women "
+                 "never influence it. `auc` measures ranking and `brier` measures the quality of the risks (lower is better). "
+                 "`mean_risk` is the average predicted risk; the real rate is 35%. `sensitivity_at_half` is the share of cases "
+                 "caught at a cut-off of 0.50. `false_alarms_for_85` is how many of the 500 healthy women must be flagged to "
+                 "catch 85% of the cases.",
+            means="The ranking is unchanged: AUC 0.853, 0.853 and 0.851. Catching 85% of cases takes 154, 152 and 153 false "
+                  "alarms, a difference of two women out of 500. What changed is the risks: the average predicted risk rises "
+                  "from 35% to 44% and 43%, the Brier score gets worse (0.149 to 0.157 and 0.158), and the calibration slope "
+                  "drops. At the usual 0.50 cut-off both rebalanced models catch more cases (79% and 77%, against 61%), but "
+                  "that is only because they flag more women.",
+            next="Check that claim directly: is a rebalanced model just the published model with a different cut-off?",
+        ),
+        dict(
+            h="7.3 Rebalancing is a cut-off in disguise",
+            look="Whether the published model, with its cut-off moved, reproduces what the class-weighted model does at 0.50.",
+            code="""
+from src.evaluate import confusion_at
+published = np.array(reb["oof"]["Published model"])
+rows = []
+for name in ["Class weights", "SMOTE"]:
+    p = np.array(reb["oof"][name])
+    c = confusion_at(y, p, 0.5)
+    flagged = c["tp"] + c["fp"]
+    grid = np.arange(0.02, 0.9, 0.005)
+    t = min(grid, key=lambda t: abs(sum(confusion_at(y, published, t)[k] for k in ("tp", "fp")) - flagged))
+    d = confusion_at(y, published, t)
+    rows.append({"model": name, "its cut-off": 0.5, "flags": flagged, "catches": c["tp"], "false alarms": c["fp"],
+                 "published model's matching cut-off": round(t, 3), "catches (published)": d["tp"], "false alarms (published)": d["fp"]})
+pd.DataFrame(rows).set_index("model")""",
+            read="Each row takes a rebalanced model at its cut-off of 0.50, counts how many women it flags, then finds the cut-off "
+                 "at which the published model flags the same number. If rebalancing found extra cases, the published model "
+                 "would catch fewer at that matching cut-off.",
+            means="The class-weighted model at 0.50 flags 330 women, catching 211 with 119 false alarms. The published model "
+                  "with its cut-off moved to 0.35 flags the same 330 and gets the identical 211 and 119. SMOTE is within a "
+                  "woman or two (206 caught against 208). Rebalancing found nothing that a cut-off couldn't, and in exchange it "
+                  "made the risks overestimate: it is a cut-off move that also breaks the probabilities. Decision D18: the "
+                  "page does not rebalance.",
+            next="So the cut-off is the lever. The next question is where to put it, and that needs a cost.",
+        ),
+        dict(
+            h="7.4 What a missed case costs (E16)",
+            look="The cut-off that is cheapest overall, once we say how bad a missed case is compared with a false alarm.",
+            code="""
+for r, v in m5["costs"]["ratios"].items():
+    print(f"Missed case = {r}x a false alarm  ->  cut-off 1/(1+{r}) = {v['cutoff']:.2f}")
+rows = []
+for r, v in m5["costs"]["ratios"].items():
+    rows.append({"a missed case is": f"{r}x a false alarm", "cut-off": v["cutoff"], **{k: v["per_100"][k] for k in ("tp", "fn", "fp", "tn")}})
+pd.DataFrame(rows).set_index("a missed case is").rename(columns={"tp": "caught", "fn": "missed", "fp": "false alarms", "tn": "healthy, not flagged"})""",
+            read="Suppose flagging a healthy woman costs 1 unit (an unnecessary blood test) and missing a woman with diabetes "
+                 "costs 2, 5 or 10 units. For a woman whose true risk is p, flagging her costs 1 - p units on average (the "
+                 "chance she is healthy) and not flagging her costs ratio times p. Flagging is cheaper when p is at least "
+                 "1 / (1 + ratio). So the best cut-off is simply that number. The table shows what each cut-off does to every 100 "
+                 "women screened (35 of them have diabetes).",
+            means="At 2 times the cut-off is 0.33: 28 of 35 cases caught, 17 false alarms. At 5 times it is 0.17: 33 caught, "
+                  "30 false alarms, and 63 of every 100 women are flagged. At 10 times it is 0.09: 34 caught, 39 false alarms, "
+                  "73 flagged. Each step down in cut-off catches a few more cases and flags many more healthy women. The old "
+                  "85% rule (0.28) quietly assumed a missed case is only about 2.6 times as bad as a false alarm. Decision "
+                  "D17: the page uses 5 times, so the published cut-off is 0.17, and the three choices sit side by side on the "
+                  "page so a reader can pick their own.",
+            next="Check the arithmetic against the data: is that cut-off really the cheapest, and how precise must it be?",
+        ),
+        dict(
+            h="7.5 Is the cost-based cut-off really the cheapest?",
+            look="The total cost per 100 women at every cut-off, and how much the cheapest cut-off moves when the women are resampled.",
+            code="""
+figures.m5_cost();
+pd.DataFrame({r: {"cost-based cut-off": v["cutoff"], "cheapest in this data": v["empirical_best"]["best"],
+                  "cheapest, 95% range": f"{v['empirical_best']['low']:.2f} to {v['empirical_best']['high']:.2f}"}
+              for r, v in m5["costs"]["ratios"].items()}).T""",
+            read="Each panel assumes a different cost for a missed case. The green line is the cost per 100 women at every "
+                 "cut-off, in false-alarm units, so lower is better. The dot marks the formula's cut-off. The table compares "
+                 "it with the cut-off that happens to be cheapest in this data, and the range that cut-off covers when the 768 "
+                 "women are resampled 1,000 times.",
+            means="The formula's cut-off lands inside the data's 95% range in all three cases (0.33 in 0.23 to 0.43, 0.17 in 0.09 "
+                  "to 0.26, 0.09 in 0.09 to 0.17), so the formula and the data agree. The ranges are wide, which is the "
+                  "other lesson: the curves are flat near their lowest point, so a cut-off a few hundredths either side costs "
+                  "almost the same. The cut-off does not need to be exact, but the cost ratio matters, because the three curves "
+                  "have different minima.",
+            next="Compare the choice with the alternatives a reader might suggest.",
+        ),
+        dict(
+            h="7.6 Against the alternatives",
+            look="The cost of the cost-based cut-off against testing everybody, testing nobody, the old rule and a glucose rule.",
+            code="""
+pd.DataFrame({f"{r}x": v["cost_per_100"] for r, v in m5["costs"]["ratios"].items()}).round(1)""",
+            read="Cost per 100 women, in false-alarm units, for each policy at each cost ratio. Lower is better. "
+                 "`Cost-based cut-off` is the model with its cut-off from 7.4.",
+            means="At 5 and 10 times the cost-based cut-off is the cheapest policy. At 5 times it costs 40, against 45 for the old "
+                  "rule, 65 for testing everybody, 95 for the glucose-of-140 rule and 175 for testing nobody. At 2 times the old "
+                  "rule is a hair cheaper (30.2 against 30.9), since 0.28 is close to 0.33; the difference is noise. The higher "
+                  "the cost of a missed case, the more the old rule costs: at 10 times it is 71 against 45.",
+            next="The same comparison drawn the way medical decision-making papers draw it.",
+        ),
+        dict(
+            h="7.7 The decision curve",
+            look="Whether the model is worth using at all, compared with testing everybody or nobody, at every cut-off.",
+            code="""
+figures.m5_decision_curve();
+pd.DataFrame({r: {"cut-off": v["cutoff"], "net benefit, model": round(v["net_benefit"], 3),
+                  "net benefit, test everybody": round(v["net_benefit_all"], 3)}
+              for r, v in m5["costs"]["ratios"].items()}).T""",
+            read="Net benefit counts the cases found, minus the false alarms weighted by how costly they are relative to a "
+                 "missed case: net benefit = true positives per woman - false positives per woman x cut-off / (1 - cut-off). "
+                 "Testing nobody scores zero by definition. A model is worth using at a cut-off where its line sits above both "
+                 "the zero line and the dashed 'test everybody' line.",
+            means="At each of the three chosen cut-offs the model beats testing everybody. The gap is wide at 2 times (0.196 "
+                  "against 0.028) and 5 times (0.267 against 0.216), and narrow at 10 times (0.305 against 0.285): if a missed "
+                  "case is 10 times worse than a false alarm, you would test almost everyone anyway, and the model's job "
+                  "shrinks to sparing the quarter of women who are very unlikely to have diabetes. That is a real limit "
+                  "on what screening can do when almost no miss is acceptable.",
+            next="Now the question left over from Milestone 3: do age groups need their own cut-offs?",
+        ),
+        dict(
+            h="7.8 Do age groups need different cut-offs? (E31, B12)",
+            look="Whether the model's risks are equally trustworthy in each age group, and how many cases each group has caught.",
+            code="""
+display(pd.DataFrame(m5["bands"]["calibration"]).set_index("band"))
+figures.m5_bands();""",
+            read="The table compares the average predicted risk with the real rate in each age band, and `slope` is the "
+                 "calibration slope (1.00 is ideal; below 1 means the risks are too extreme). The chart shows the share of each "
+                 "band's cases caught at the old 0.28 cut-off and at the three cost-based cut-offs.",
+            means="The average predicted risk matches the real rate in every band (22% against 21% under 30, 48% against 49% for "
+                  "30 to 44, 50% against 50% for 45 and over). The slope is 1.02, 0.91 and 0.77: the risks are right on average, "
+                  "but for women 45 and over they are somewhat too extreme, a hint that a shared cut-off is least precise there. "
+                  "Under 30 the old rule caught 71% of cases; the 5-times cut-off catches 85%, and the 10-times 95%. At 2 times "
+                  "it would be worse (62%), because a higher cut-off hurts the group whose risks are lowest. B12 is fixed by "
+                  "choosing the cut-off from a cost, not by adding age rules.",
+            next="Test directly whether a cut-off per age band would do better still.",
+        ),
+        dict(
+            h="7.9 Separate cut-offs per age group",
+            look="Whether choosing a cut-off for each age band, on training women only, beats one shared cost-based cut-off.",
+            code="""
+rows = []
+for r, v in m5["bands"]["by_ratio"].items():
+    for name, pol in v["policies"].items():
+        rows.append({"a missed case is": f"{r}x", "policy": name, "cost per 100": round(pol["cost_per_100"], 1),
+                     "cut-offs (under 30 / 30-44 / 45+)": " / ".join(f"{b['cutoff']:.2f}" for b in pol["bands"]),
+                     "caught under 30": f"{pol['bands'][0]['sensitivity']:.0%}"})
+pd.DataFrame(rows).set_index(["a missed case is", "policy"])""",
+            read="Three policies, scored the honest way: each age band's cut-off is chosen on training women and used on test "
+                 "women, over the same 50 splits. `Single cost-based cut-off` is the formula, shared by every band. `Cheapest "
+                 "per band` picks the cheapest cut-off within each band. `Catch 85% in every band` is the old rule applied "
+                 "band by band.",
+            means="One shared cut-off wins or ties. At 5 times it costs 40.5 against 42.5 for a cut-off per band; at 10 times "
+                  "44.5 against 47.7; at 2 times the per-band version is 30.0 against 30.9, about one unit better, which is "
+                  "inside the noise. Catching 85% in every band is clearly worse (52 and 79 at 5 and 10 times), because it "
+                  "demands a cut-off of 0.42 for older women who are mostly cases anyway. With 66 to 118 cases per band, a "
+                  "cut-off fitted to one band mostly fits its noise. Decision D19: no age-specific cut-offs; E31 is closed as "
+                  "not needed.",
+            next="Milestone 6 turns from deciding to explaining: why did the model give this woman this number?",
         ),
     ],
 )

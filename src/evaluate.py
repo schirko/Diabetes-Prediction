@@ -240,6 +240,41 @@ def milestone3(X, y, Xc) -> dict:
     }, probs[nl.BASELINE]
 
 
+def milestone4(Xc, y) -> dict:
+    """Everything notebook 06 and the page quote about the tuned contest (E12, E13, E14).
+
+    The contest itself is saved in reports/m4_contest.json and reloaded, because it
+    takes several minutes. Delete that file (or call run_contest(rerun=True)) to re-run it.
+    """
+    from scipy import stats
+    from . import contest
+    results = contest.run_contest(Xc, y)
+    table = contest.league_table(results, Xc, y)
+    n_test = len(y) / contest.OUTER_FOLDS
+    curves = results[contest.PUBLISHED]["auc"]
+    straight = results["Straight lines, tuned"]["auc"]
+    tuned = pd.DataFrame(results["Curves, tuned"]["params"])
+    return {
+        "config": contest._config(),
+        "table": json.loads(table.to_json(orient="index")),
+        "curves_vs_straight": contest.corrected_ttest(curves, straight, len(y) - n_test, n_test)
+                              | {"naive_p": float(stats.ttest_rel(curves, straight).pvalue)},
+        "tuned_curves": {"median_C": float(tuned["C"].median()),
+                         "knots": tuned["n_knots"].value_counts().to_dict()},
+    }
+
+
+def milestone5(Xc, y, p, rule, old_cutoff) -> dict:
+    """Class imbalance, cost-based cut-offs and age bands (notebook 07)."""
+    from . import decision
+    res, _ = decision.run(Xc, y, np.asarray(p), rule, old_cutoff)
+    pub_cut = decision.cutoff_for_ratio(decision.DEFAULT_RATIO)
+    c = confusion_at(y, np.asarray(p), pub_cut)
+    res["published"] = {"ratio": decision.DEFAULT_RATIO, "cutoff": pub_cut, "counts": c,
+                        "per_100": decision.per_100_counts(c, len(y))}
+    return res
+
+
 def main():
     warnings.filterwarnings("ignore")
     REPORTS.mkdir(exist_ok=True)
@@ -263,6 +298,7 @@ def main():
     rule_cut = min(np.arange(0.30, 0.80, 0.01), key=lambda t: abs(confusion_at(y, p_current, t)["fp"] - rule["fp"]))
     vs_rule = confusion_at(y, p_current, round(float(rule_cut), 2))
 
+    current = summarise(Xc, y, p_current) | {"vs_glucose_rule": vs_rule}
     metrics = {
         "n": int(len(y)), "cases": int(y.sum()), "prevalence": float(y.mean()),
         "missing": {k: int(v) for k, v in X.isna().sum().items()},
@@ -283,8 +319,12 @@ def main():
         "m2": milestone2(X, y, threshold),
         # --- Milestone 3: curved effects, insulin re-test, B10 (notebook 05)
         "m3": m3,
+        # --- Milestone 4: tuned contest with nested cross-validation (notebook 06)
+        "m4": milestone4(Xc, y),
+        # --- Milestone 5: rebalancing, cost-based cut-offs, age bands (notebook 07)
+        "m5": milestone5(Xc, y, p_current, rule, current["threshold_screening"]["threshold"]),
         # --- The current model: what the web page runs and reports
-        "current": summarise(Xc, y, p_current) | {"vs_glucose_rule": vs_rule},
+        "current": current,
     }
     (REPORTS / "metrics.json").write_text(json.dumps(metrics, indent=1))
     pd.DataFrame({"outcome": y, "p_model": p.round(6), "p_glucose_only": p_glucose.round(6),

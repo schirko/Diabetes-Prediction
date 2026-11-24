@@ -5893,6 +5893,176 @@
    }
   }
  },
+ "m6": {
+  "permutation": {
+   "Pregnancies": {
+    "mean": 0.0026323130677847585,
+    "low": -0.00735269042627533,
+    "high": 0.008163731656184529,
+    "splits_with_a_drop": 0.8
+   },
+   "Glucose": {
+    "mean": 0.16769913347309576,
+    "low": 0.11768584905660377,
+    "high": 0.21503490566037736,
+    "splits_with_a_drop": 1.0
+   },
+   "BloodPressure": {
+    "mean": 0.0005670719776380077,
+    "low": -0.00569877707896573,
+    "high": 0.005247624039133498,
+    "splits_with_a_drop": 0.58
+   },
+   "BMI": {
+    "mean": 0.07044552061495457,
+    "low": 0.03412222222222221,
+    "high": 0.09901388888888886,
+    "splits_with_a_drop": 1.0
+   },
+   "DiabetesPedigreeFunction": {
+    "mean": 0.009521118099231306,
+    "low": -0.0017213836477987382,
+    "high": 0.019758647798742084,
+    "splits_with_a_drop": 0.96
+   },
+   "Age": {
+    "mean": 0.0417269182389937,
+    "low": 0.01818128930817613,
+    "high": 0.0660685185185185,
+    "splits_with_a_drop": 1.0
+   }
+  },
+  "bmi_plateau": {
+   "points": [
+    24.0,
+    30.0,
+    42.0
+   ],
+   "estimate": {
+    "low_to_start": 1.6784421611868146,
+    "plateau": 0.17124703434388644
+   },
+   "interval": {
+    "low_to_start": [
+     1.1375729422122984,
+     2.389099083400974
+    ],
+    "plateau": [
+     -0.3750417767329006,
+     0.8521879829221831
+    ]
+   },
+   "steady_rise_if_not_flat": 3.356884322373629,
+   "odds": {
+    "24_to_30": 5.357203807127593,
+    "30_to_42": 1.1867838891917777
+   },
+   "curve_vs_straight_bmi": {
+    "auc_curve": 0.8532609364081061,
+    "auc_straight": 0.8467875611460518,
+    "diff": 0.00647337526205451,
+    "low": -0.002404081773340401,
+    "high": 0.015350832297449421,
+    "p": 0.14920845920405248,
+    "wins": 0.8
+   },
+   "n_boot": 300
+  },
+  "shap": {
+   "max_abs_difference": 0.0016756482888911073,
+   "mean_abs_difference": 6.01868920769876e-07,
+   "mean_abs_shap": {
+    "Pregnancies": 0.13573323158125836,
+    "Glucose": 0.9297881596851382,
+    "BloodPressure": 0.09323080795661186,
+    "BMI": 0.6639576534010249,
+    "DiabetesPedigreeFunction": 0.20438149063092603,
+    "Age": 0.5278704549533708
+   },
+   "share": {
+    "Pregnancies": 0.0531253467963558,
+    "Glucose": 0.36391470132240455,
+    "BloodPressure": 0.03649009860812403,
+    "BMI": 0.259869894675774,
+    "DiabetesPedigreeFunction": 0.07999395168031427,
+    "Age": 0.20660600691702732
+   },
+   "n_women": 768,
+   "n_background": 100
+  },
+  "boosted": {
+   "boosted_share": {
+    "Pregnancies": 0.0657983049750328,
+    "Glucose": 0.3481155335903168,
+    "BloodPressure": 0.05553697049617767,
+    "BMI": 0.23789332807064056,
+    "DiabetesPedigreeFunction": 0.10697568953037262,
+    "Age": 0.1856800764799118
+   },
+   "published_share": {
+    "Pregnancies": 0.0531253467963558,
+    "Glucose": 0.36391470132240455,
+    "BloodPressure": 0.03649009860812403,
+    "BMI": 0.259869894675774,
+    "DiabetesPedigreeFunction": 0.07999395168031427,
+    "Age": 0.20660600691702732
+   },
+   "spearman": 1.0,
+   "top_boosted": "Glucose",
+   "top_published": "Glucose"
+  },
+  "counterfactual": {
+   "2": {
+    "cutoff": 0.33,
+    "flagged": 344,
+    "share_flagged": 0.4479166666666667,
+    "glucose_alone": 0.33430232558139533,
+    "bmi_alone": 0.13953488372093023,
+    "either": 0.3546511627906977,
+    "median_glucose_drop": 11.0,
+    "median_bmi_drop": 1.7,
+    "limits": {
+     "Glucose": 20.0,
+     "BMI_share": 0.1
+    },
+    "flagged_risk_median": 0.6117540247486586,
+    "cleared_by_either_when_risk_below_30": null
+   },
+   "5": {
+    "cutoff": 0.17,
+    "flagged": 477,
+    "share_flagged": 0.62109375,
+    "glucose_alone": 0.27882599580712786,
+    "bmi_alone": 0.1278825995807128,
+    "either": 0.2893081761006289,
+    "median_glucose_drop": 12.0,
+    "median_bmi_drop": 1.4,
+    "limits": {
+     "Glucose": 20.0,
+     "BMI_share": 0.1
+    },
+    "flagged_risk_median": 0.49466271362972625,
+    "cleared_by_either_when_risk_below_30": 0.9357798165137615
+   },
+   "10": {
+    "cutoff": 0.09,
+    "flagged": 564,
+    "share_flagged": 0.734375,
+    "glucose_alone": 0.22695035460992907,
+    "bmi_alone": 0.10815602836879433,
+    "either": 0.24113475177304963,
+    "median_glucose_drop": 11.0,
+    "median_bmi_drop": 1.5,
+    "limits": {
+     "Glucose": 20.0,
+     "BMI_share": 0.1
+    },
+    "flagged_risk_median": 0.42795290789648655,
+    "cleared_by_either_when_risk_below_30": 0.6632653061224489
+   }
+  },
+  "default_ratio": 5
+ },
  "current": {
   "features": [
    "Pregnancies",

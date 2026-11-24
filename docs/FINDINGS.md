@@ -8,7 +8,7 @@ Each answer is the current one; when a later milestone changes it, the answer is
 under "Changed". Evidence points to the notebooks; item numbers (E10, B12, D11) refer to the
 [tracker](ENHANCEMENTS_AND_BUGS.md) and [decisions](DECISIONS.md).
 
-Last updated: 2026-11-23, after Milestone 5.
+Last updated: 2026-11-23, after Milestone 6.
 
 **How solid each answer is:**
 
@@ -32,6 +32,8 @@ kept separate (nested cross-validation).
 | Can the probabilities be believed? | Yes, for women like these (calibration slope 0.94) | Firm |
 | Where should the cut-off go? | From a stated cost. At 5 times, 0.17: 33 of 35 cases caught, 30 false alarms per 100 | Firm on method; the cost ratio is a judgment |
 | Who does it serve less well? | Women 45 and over (weaker separation). Women under 30 are fixed by the cost-based cut-off | Likely |
+| Why did it give her this number? | Glucose, then BMI and age; the same order in a boosted-tree model; exact explanation | Firm |
+| Can a flagged woman be cleared by a small change? | Rarely: about 3 in 10 at the page's cut-off | Firm |
 | Does rebalancing help? | No: same ranking, distorted risks | Firm |
 | Does it beat a simple glucose rule? | Yes: 21 more cases found for about the same number of false alarms | Firm |
 | Does it work outside this data? | Unknown | Open (M8) |
@@ -130,7 +132,7 @@ held at typical values, multiplies the odds by:
 
 Age does not rise steadily: the diabetes rate peaks at 71% at ages 50 to 54 and falls to 28% at 60 and over, and
 the model's age curve follows that. BMI rises steeply up to about 30, is roughly flat from 30 to 42, then rises
-again; the flat stretch may be noise.
+again. Milestone 6 tested the flat stretch: it is real, but the data can't say whether it is exactly flat (section 11).
 
 These are associations in this group of women, not causes.
 
@@ -245,6 +247,34 @@ anyone else, and the page says so.
 
 **How solid.** Open. Milestone 8 tests the model on a different population (E21).
 
+## 11. Why did the model give this woman this number?
+
+**In plain terms.** Mostly her blood sugar, then her weight and age. A very different kind of model ranks the measurements
+the same way, so that ranking belongs to the data. For women the model flags, most are too far above the cut-off for
+a small, realistic change to clear them.
+
+**Answer.**
+
+- **What it relies on.** Shuffling one input among women the model hasn't seen costs this much AUC: glucose 0.17, BMI 0.07,
+  age 0.04, family history 0.01, pregnancies 0.003, blood pressure 0.001. The last three have ranges that include zero.
+- **Does another model agree?** Boosted trees (XGBoost), read with SHAP, rank the inputs in the same order (rank
+  correlation 1.0), with glucose at 35% of total importance against 36% for the published model.
+- **Is the explanation tool right?** SHAP reproduces the published model's exact contributions to within 0.002 on the
+  log-odds scale (average gap under a millionth), so it can be trusted on models where no exact answer exists.
+- **BMI's flat stretch.** From BMI 24 to 30 the odds multiply by 5.4 (range 3.1 to 10.9). From 30 to 42 they multiply by
+  1.2 (range 0.7 to 2.3), where a steady continuation would give about 29. The levelling-off is real; whether it is
+  exactly flat is unknown. A straight line for BMI scores 0.006 AUC lower, which could be chance (p = 0.15).
+- **What would change her result?** At the 0.17 cut-off, 477 of 768 women are flagged, with a median risk of 49%. Lowering
+  glucose by up to 20 mg/dL clears 28% of them, lowering BMI by up to 10% clears 13%, either one 29%. For flagged
+  women whose risk is under 30%, 94% can be cleared. At 0.33 the figure is 35%, at 0.09 it is 24%.
+
+These are explanations of the model, which describes patterns in 768 women. They do not show that changing a reading would
+change anyone's real risk.
+
+**How solid.** Firm for the importance ranking and the SHAP check. Likely for the BMI curve's benefit (p = 0.15).
+
+**Evidence.** Notebook 08, and the "What would change this?" box on the project page.
+
 ## What didn't work
 
 Ideas tested and dropped, with the result, so they aren't retried without a new reason. Most are ways of making the
@@ -266,3 +296,4 @@ model more complicated; none of them helped.
 | Tuning the curves model's own settings | +0.002, within noise | Notebook 06, 6.3 and 6.5 |
 | Class weights or SMOTE instead of moving the cut-off | Same ranking (AUC 0.851 to 0.853), same false alarms to catch 85% (152 to 154), risks too high (43 to 44% against 35%) | Notebook 07, 7.2 and 7.3 |
 | A separate cut-off for each age band | No better than one shared cut-off (42 against 40 per 100 women at 5 times) | Notebook 07, 7.9 |
+| Straight line for BMI instead of a curve | 0.006 AUC lower, could be chance (p = 0.15), so the curve stays | Notebook 08, 8.4 |

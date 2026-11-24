@@ -3,7 +3,7 @@
 This page explains the whole project without statistics. Words in **bold** are explained in the
 [glossary](GLOSSARY.md). For the full list of conclusions, see the [findings](FINDINGS.md).
 
-Last updated: 2026-11-23, after Milestone 5.
+Last updated: 2026-11-23, after Milestone 6.
 
 ## The question
 
@@ -87,9 +87,21 @@ would score 0.50.
 - **Age does not rise forever.** In this data the diabetes rate climbs to 71% for women aged 50 to 54, then falls to
   28% for women 60 and over. The first models drew a straight line through age, so they kept predicting high risk
   for the oldest women. The current model lets age curve, which fixed most of that.
-- **Family history and pregnancies** matter a little. **Blood pressure** barely matters once the others are known.
+- **Family history and pregnancies** matter a little to the odds, but scrambling them does not measurably hurt the
+  model on women it hasn't seen. **Blood pressure** barely matters once the others are known.
+- **Weight rises, then levels off.** Risk climbs steeply with BMI up to about 30 and then flattens. The levelling-off is
+  real, but the data can't say whether it is exactly flat.
+- **A very different model agrees.** A boosted-tree model ranks the six inputs in the same order, so the ranking is
+  about the data, not the type of model.
 
 These are patterns in this group of women, not proof that one thing causes another.
+
+### What would change one woman's result?
+
+For a woman the model flags, the project page asks: what is the smallest drop in glucose, or in BMI, that would move her
+below the cut-off? For most flagged women the answer is "more than is realistic". Only about 3 in 10 could be cleared by
+glucose 20 lower or BMI 10% lower, because the typical flagged woman is far above the cut-off (median risk 49%, against
+17%). This explains the model; it is not health advice.
 
 ## Main conclusions
 
@@ -110,6 +122,8 @@ These are patterns in this group of women, not proof that one thing causes anoth
    costs fixed that: 85% of their cases are caught at the 17% cut-off.
 7. **Rebalancing the data doesn't help.** Giving the smaller group extra weight, or inventing extra cases, finds no
    more cases for the same false alarms, and it makes the risks too high. Moving the cut-off does the same job.
+8. **The model can be explained exactly.** Glucose, BMI and age are the only inputs it clearly relies on. SHAP, a standard
+   explanation tool, matches the model's own arithmetic to within 0.002.
 
 ## What it can't tell you
 
@@ -120,9 +134,8 @@ These are patterns in this group of women, not proof that one thing causes anoth
 
 ## What's next
 
-The project is planned as ten **milestones**. Five are done. The next ones ask:
+The project is planned as ten **milestones**. Six are done. The next ones ask:
 
-- **Milestone 6:** for any one woman, why did the model give her that number?
 - **Milestones 7 to 10:** how sure is each estimate; does it work on other populations; are there hidden groups in
   the data; and production polish.
 

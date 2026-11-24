@@ -222,6 +222,11 @@ BMI and age are allowed to bend, so risk can level off or fall where the data sa
       <div id="contrib"></div>
       <p class="note" style="font-size:13.5px;margin:8px 0 0">Each bar compares this woman with a typical woman in the data, who has the middle value of every measurement. "×2.0" means that measurement doubles her odds; "×0.5" halves them.</p>
     </div>
+    <div class="contrib" id="whatif-box" style="grid-column:1/-1">
+      <h3>What would change this?</h3>
+      <div id="whatif"></div>
+      <p class="note" style="font-size:13.5px;margin:8px 0 0">This explains the model, not her health. The model describes patterns in 768 women; it does not say that lowering a reading would lower anyone's risk. Only glucose and BMI are tried, one at a time, within a modest limit ({{cf_glu_lim}} mg/dL lower, or BMI {{cf_bmi_lim}}% lower).</p>
+    </div>
   </div>
 </div>
 
@@ -397,6 +402,45 @@ is, see the <a href="docs/FINDINGS.html">findings</a>. Unfamiliar word? Try the 
   </figure>
 </div>
 
+<div class="story">
+  <h3>10. Why the model gives the number it does</h3>
+  <p>Glucose, BMI and age are the only inputs the model clearly leans on. Scrambling a woman's glucose reading costs the model
+  {{perm_glucose}} of AUC, BMI {{perm_bmi}}, age {{perm_age}}; scrambling pregnancies, blood pressure or family history costs
+  about 0.01 or less, and for each of them the range includes zero. A boosted-tree model, which has no tidy formula to read, ranks the
+  six inputs in the same order (rank agreement {{boost_rho}}), so the ranking is about the data and not the type of model. SHAP, a
+  popular explanation method, reproduces this model's exact contributions to within {{shap_diff}} on the log-odds scale, which is
+  the check that the method is working.</p>
+  <figure>
+    <img src="images/m6_importance.png" alt="Left: bars of AUC lost when each input is scrambled; glucose about 0.17, BMI 0.07, age 0.04, the others near zero. Right: share of SHAP importance for the published model and a boosted-tree model; both rank glucose, BMI, age, family history, pregnancies, blood pressure in that order.">
+    <figcaption><span class="howto"><b>How to read it:</b> on the left, a longer bar means the model leans harder on that input; the
+    black lines are the range over 50 train/test splits. On the right, each bar is that input's share of the total SHAP importance,
+    for the published model (green) and for a boosted-tree model (orange).</span></figcaption>
+  </figure>
+  <p>The shapes matter as much as the sizes. Risk climbs steadily with glucose. It rises with age to about 50 and then falls. BMI
+  is the odd one: it rises sharply up to about 30 (the odds multiply by {{bmi_up_24_30}} from BMI 24 to 30), then flattens. Whether that
+  flat stretch is real was a question left over from the model contest. A resampling test says the levelling-off is genuine, because
+  a steady rise would have multiplied the odds by about {{bmi_steady}} from BMI 30 to 42 and the data rule that out; but the data can't
+  say whether the stretch is exactly flat (the odds from BMI 30 to 42 are between ×{{bmi_low_30_42}} and ×{{bmi_high_30_42}}). Replacing the BMI curve by a
+  straight line scores {{bmi_dauc}} AUC lower, which is within chance (p = {{bmi_p}}).</p>
+  <figure>
+    <img src="images/m6_curves.png" alt="Three panels of predicted risk against glucose, BMI and age. Each shows 40 faint lines for individual women and a bold average line. Glucose rises steadily, BMI rises then flattens from about 30 and rises again near 40 to 50, age rises to about 50 and then falls.">
+    <figcaption><span class="howto"><b>How to read it:</b> each faint line is one woman, showing how her predicted risk would move
+    if only that one measurement changed. The bold line is the average over all women. Lines that run parallel mean the input has
+    the same effect for everyone, which is what this kind of model builds in.</span></figcaption>
+  </figure>
+  <p>The box under the risk estimate above turns this into a question about one woman: what is the smallest change in glucose or
+  BMI that would take her below the cut-off? At the page's cut-off, {{cf_flag_per100}} in 100 women are flagged, and the typical flagged woman is
+  well above it (median risk {{cf_risk_median}}). So a realistic change clears only {{cf5_either}} of the flagged women (glucose alone clears
+  {{cf5_glucose}}, BMI alone {{cf5_bmi}}); among those with a risk under 30%, {{cf_below30}} can be cleared. That is the honest shape of the
+  answer: most flagged women are not a small change away from the cut-off.</p>
+  <figure>
+    <img src="images/m6_counterfactual.png" alt="Bars of the share of flagged women a realistic change would clear, at the 2, 5 and 10 times cut-offs: about a third at 0.33, 29% at 0.17 and 24% at 0.09 for either glucose or BMI; BMI alone clears 11% to 14%.">
+    <figcaption><span class="howto"><b>How to read it:</b> for each cut-off, the bars are the share of women the model flags who
+    would drop below it if their glucose fell by up to 20 mg/dL, their BMI fell by up to 10%, or either one. Lower cut-offs flag
+    more women, and fewer of them can be cleared.</span></figcaption>
+  </figure>
+</div>
+
 <h2 id="read">Read more</h2>
 <div class="reading">
   <a href="docs/OVERVIEW.html"><span>5 minutes</span><b>Start here</b>The whole project in plain English: the question, the data, how good the model is and what it can't do.</a>
@@ -470,6 +514,37 @@ function predict(values, missing) {
   return {p: 1 / (1 + Math.exp(-z)), parts};
 }
 
+// The smallest drop in one measurement that moves this woman below the cut-off, changing nothing else.
+// Steps of 1 mg/dL (glucose) or 0.1 (BMI), within the limits in D.cf_limits. Mirrors explain.counterfactual in Python.
+function needed(name, limit) {
+  const i = F.indexOf(name);
+  if (i < 0 || state.miss[i]) return null;
+  const step = name === "Glucose" ? 1 : 0.1, lo = M.range[name][0];
+  const target = Math.log(state.cut / (1 - state.cut));
+  const {p} = predict(state.v, state.miss), z0 = Math.log(p / (1 - p)), c0 = lookup(name, state.v[i]);
+  for (let k = 1; ; k++) {
+    const drop = Math.round(k * step * 1e4) / 1e4, nv = state.v[i] - drop;
+    if (nv < lo || drop > limit + 1e-9) return null;
+    if (z0 - c0 + lookup(name, nv) < target) return {drop, nv};
+  }
+}
+
+function renderWhatIf(flagged) {
+  const el = document.getElementById("whatif");
+  if (!flagged) { el.innerHTML = "<p>She is already below the cut-off, so nothing needs to change for the model to leave her unflagged.</p>"; return; }
+  const gi = F.indexOf("Glucose"), bi = F.indexOf("BMI");
+  const g = needed("Glucose", D.cf_limits.Glucose);
+  const b = needed("BMI", D.cf_limits.BMI_share * state.v[bi]);
+  const lines = [];
+  if (g) lines.push(`<li>A glucose of <b>${g.nv.toFixed(0)}</b> instead of ${state.v[gi].toFixed(0)} (${g.drop.toFixed(0)} lower) would take her below the cut-off.</li>`);
+  else if (state.miss[gi]) lines.push("<li>Glucose is marked as not measured, so it is not tried.</li>");
+  else lines.push(`<li>Lowering glucose by up to ${D.cf_limits.Glucose} mg/dL would not be enough on its own.</li>`);
+  if (b) lines.push(`<li>A BMI of <b>${b.nv.toFixed(1)}</b> instead of ${state.v[bi].toFixed(1)} (${b.drop.toFixed(1)} lower) would take her below the cut-off.</li>`);
+  else if (state.miss[bi]) lines.push("<li>BMI is marked as not measured, so it is not tried.</li>");
+  else lines.push(`<li>Lowering BMI by up to ${Math.round(D.cf_limits.BMI_share * 100)}% would not be enough on its own.</li>`);
+  el.innerHTML = `<ul style="margin:0 0 0 18px;padding:0">${lines.join("")}</ul>`;
+}
+
 function buildFields() {
   const host = document.getElementById("fields");
   F.forEach((f, i) => {
@@ -515,6 +590,7 @@ function render() {
     ? "In a screening programme she would be sent for a follow-up blood test."
     : "In a screening programme she would not be flagged."}</span>`;
 
+  renderWhatIf(flagged);
   const max = Math.max(1.2, ...parts.map(Math.abs));
   document.getElementById("contrib").innerHTML = F.map((f, i) => ({f, i, c: parts[i]}))
     .sort((a, b) => Math.abs(b.c) - Math.abs(a.c))
@@ -555,7 +631,8 @@ document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("clic
 document.querySelectorAll("[data-cut]").forEach(b => b.addEventListener("click", () => { state.cut = +b.dataset.cut; render(); }));
 document.getElementById("cut").addEventListener("input", e => { state.cut = +e.target.value; render(); });
 render();
-window.__predict = predict;   // used by the automated check that compares this page with scikit-learn
+window.__predict = predict;
+window.__needed = (values, cut, name, limit) => { state.v = values.slice(); state.miss = F.map(() => false); state.cut = cut; return needed(name, limit); };   // used by the automated check that compares this page with scikit-learn
 </script>
 </body>
 </html>

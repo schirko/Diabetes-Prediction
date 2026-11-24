@@ -13,6 +13,7 @@ import base64
 import datetime as dt
 import html
 import json
+import math
 import os
 import re
 import shutil
@@ -41,6 +42,8 @@ NOTEBOOK_BLURBS = {
                                      "and the eight-input baseline model.",
     "04_missing_data": "Seven ways to handle the missing readings, a test of whether insulin can be guessed back, "
                        "and why the published model now leaves insulin and skinfold out.",
+    "08_explainability": "Which inputs matter, what shape each curve has, whether the BMI plateau is real, a SHAP check "
+                         "against the model's exact contributions, and what change would clear a flagged woman.",
     "05_curved_effects": "Why the model over-flagged older women, nine curved and boosted models compared, "
                          "insulin's second hearing, and the curved model the page now runs.",
         "07_decisions_and_costs": "Does rebalancing the data help, what a missed case costs, where the cut-off should go, and "
@@ -182,7 +185,29 @@ def tokens(m: dict) -> dict:
                        f"r{r}_young": pct(m5["bands"]["by_ratio"][r]["at_cost_cutoff"][0]["sensitivity"])}
     reb, c5 = m5["rebalancing"], m5["costs"]["ratios"]["5"]
     pol5 = m5["bands"]["by_ratio"]["5"]["policies"]
-    extra = ratio_rows | {
+    m6 = m["m6"]
+    perm, bp, sh, cf5 = m6["permutation"], m6["bmi_plateau"], m6["shap"], m6["counterfactual"]["5"]
+    cf_rows = {}
+    for r, v in m6["counterfactual"].items():
+        cf_rows |= {f"cf{r}_either": pct(v["either"]), f"cf{r}_glucose": pct(v["glucose_alone"]),
+                    f"cf{r}_bmi": pct(v["bmi_alone"]), f"cf{r}_flagged": str(v["flagged"])}
+    m6_tokens = cf_rows | {
+        "perm_glucose": f"{perm['Glucose']['mean']:.2f}", "perm_bmi": f"{perm['BMI']['mean']:.2f}",
+        "perm_age": f"{perm['Age']['mean']:.2f}",
+        "shap_diff": f"{sh['max_abs_difference']:.3f}", "shap_share_glucose": pct(sh["share"]["Glucose"]),
+        "boost_rho": f"{m6['boosted']['spearman']:.1f}",
+        "bmi_up_24_30": f"{bp['odds']['24_to_30']:.1f}", "bmi_up_30_42": f"{bp['odds']['30_to_42']:.1f}",
+        "bmi_low_30_42": f"{math.exp(bp['interval']['plateau'][0]):.1f}",
+        "bmi_high_30_42": f"{math.exp(bp['interval']['plateau'][1]):.1f}",
+        "bmi_steady": f"{math.exp(bp['steady_rise_if_not_flat']):.0f}",
+        "bmi_p": f"{bp['curve_vs_straight_bmi']['p']:.2f}", "bmi_dauc": f"{bp['curve_vs_straight_bmi']['diff']:.3f}",
+        "cf_glu_median": f"{cf5['median_glucose_drop']:.0f}", "cf_bmi_median": f"{cf5['median_bmi_drop']:.1f}",
+        "cf_below30": pct(cf5["cleared_by_either_when_risk_below_30"]),
+        "cf_risk_median": pct(cf5["flagged_risk_median"]),
+        "cf_flag_per100": str(round(cf5["share_flagged"] * 100)),
+        "cf_glu_lim": f"{cf5['limits']['Glucose']:.0f}", "cf_bmi_lim": f"{cf5['limits']['BMI_share'] * 100:.0f}",
+    }
+    extra = ratio_rows | m6_tokens | {
         "pub_ratio": str(pub["ratio"]), "cut85": f"{scr['threshold']:.2f}", "cut85_pct": pct(scr["threshold"]),
         "old_ratio": f"{m5['costs']['old_implied_ratio']:.1f}",
         "cost5_old": f"{c5['cost_per_100']['Old rule (catch 85%)']:.0f}",
@@ -287,6 +312,7 @@ def build():
         "labels": LABELS,
         "cut": metrics["m5"]["published"]["cutoff"],
         "presets": {r: v["cutoff"] for r, v in metrics["m5"]["costs"]["ratios"].items()},
+        "cf_limits": metrics["m6"]["counterfactual"]["5"]["limits"],
         "oof": {"p": [round(float(v), 6) for v in oof["p_current"]], "y": [int(v) for v in oof["outcome"]]},
         "check": model["check"],
     }

@@ -17,6 +17,7 @@ Every technical term is explained in [docs/GLOSSARY.md](docs/GLOSSARY.md).
 - The cut-off comes from a stated cost: a missed case counts as 5 false alarms, giving 0.17. Per 100 women it catches 33 of 35 cases with 30 false alarms (the page also shows 2 times and 10 times). At the standard 0.50 it misses 39%.
 - Rebalancing the data (class weights, SMOTE) doesn't help: moving the cut-off does the same job without distorting the risks.
 - Glucose does most of the work. Insulin and skinfold are half missing and add nothing, so they are left out.
+- Glucose, BMI and age are the only inputs it clearly relies on; a boosted-tree model ranks them the same way, and SHAP matches the model's exact contributions. The page has a "What would change this?" box for flagged women.
 - It serves women 45 and over less well. The cost-based cut-off also fixes the drop in cases caught under 30, with no age-specific rules.
 
 Every finding, organised by question and marked by how solid it is, is in [docs/FINDINGS.md](docs/FINDINGS.md).
@@ -32,6 +33,7 @@ Every finding, organised by question and marked by how solid it is, is in [docs/
 | `src/nonlinear.py` | Milestone 3: curved effects, boosted models, insulin re-test; the published model and its export |
 | `src/contest.py` | Milestone 4: tuned model contest (nested cross-validation, Optuna), corrected t-test, stacked ensemble |
 | `src/decision.py` | Milestone 5: rebalancing comparison, cost-based cut-offs, decision curve, age-band policies |
+| `src/explain.py` | Milestone 6: permutation importance, BMI plateau test, SHAP check, boosted-tree comparison, counterfactuals |
 | `src/evaluate.py` | Runs the whole evaluation, writes `reports/` |
 | `src/figures.py` | Charts shared by the notebooks and the site |
 | `src/run_notebooks.py` | Re-runs every notebook top to bottom |

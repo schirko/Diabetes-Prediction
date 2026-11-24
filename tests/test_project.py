@@ -115,3 +115,40 @@ def test_cost_based_cutoff_is_near_the_cheapest():
     for v in m5["costs"]["ratios"].values():
         low, high = v["empirical_best"]["low"], v["empirical_best"]["high"]
         assert low - 1e-9 <= v["cutoff"] <= high + 1e-9
+
+
+def test_exact_contributions_add_up_to_the_prediction():
+    from src import explain
+    from src import nonlinear as nl
+    from src.modeling import current_features
+    X, y = load_data()
+    Xc = X[current_features(FEATURES)]
+    m = nl.export_curves_model(Xc, y)
+    contrib = explain.contributions_exact(m, Xc.head(20))
+    z = m["base_logit"] + contrib.sum(axis=1).to_numpy()
+    p = nl.predict_from_export(m, Xc.head(20).fillna(Xc.median()).to_numpy())
+    assert np.allclose(1 / (1 + np.exp(-z)), p, atol=1e-9)
+
+
+def test_counterfactual_is_the_smallest_change_that_clears_her():
+    from src import explain
+    from src import nonlinear as nl
+    from src.modeling import current_features
+    X, y = load_data()
+    Xc = X[current_features(FEATURES)]
+    m = nl.export_curves_model(Xc, y)
+    woman = {"Pregnancies": 2, "Glucose": 122, "BloodPressure": 72.0, "BMI": 31.0, "DiabetesPedigreeFunction": 0.45, "Age": 30}
+    vals = [woman[f] for f in m["features"]]
+    cut = 0.33
+    out = explain.counterfactual(m, vals, cut, "Glucose", 20.0)
+    assert out["needed"] == 10.0 and out["risk"] < cut
+    one_less = vals.copy()
+    one_less[m["features"].index("Glucose")] -= out["needed"] - 1
+    assert explain._z(m, one_less) >= np.log(cut / (1 - cut))      # one step earlier she is still flagged
+    assert explain.counterfactual(m, vals, 0.17, "Glucose", 20.0)["needed"] is None
+
+
+def test_shap_matches_the_exact_contributions():
+    m6 = json.loads((ROOT / "reports" / "metrics.json").read_text())["m6"]
+    assert m6["shap"]["max_abs_difference"] < 0.01
+    assert m6["boosted"]["spearman"] > 0.8

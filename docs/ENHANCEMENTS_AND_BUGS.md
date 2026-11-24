@@ -25,8 +25,8 @@ Last updated: 2026-11-23
 | E14 | Stacked ensemble of four model types; 0.849, no better than the curves model alone | M4 | Done |
 | E15 | Class weights vs SMOTE vs cut-off moving. Neither rebalancing trick beat moving the cut-off (same 152 to 154 false alarms to catch 85%), and both distort the risks | M5 | Done |
 | E16 | Decision-curve analysis and a cost-based cut-off: cut-off = 1 / (1 + cost ratio); the page offers 2x, 5x (default) and 10x | M5 | Done |
-| E17 | SHAP, permutation importance, partial-dependence and ICE curves | M6 | Planned |
-| E18 | Counterfactual explanations in the app | M6 | Planned |
+| E17 | Permutation importance, partial-dependence and ICE curves, SHAP checked against the exact contributions, and a boosted-tree model ranked the same way; BMI plateau tested (shape real, benefit likely) | M6 | Done |
+| E18 | Counterfactual explanations in the app: the "What would change this?" box (smallest glucose or BMI drop that clears a flagged woman) | M6 | Done |
 | E19 | Bootstrap interval around each individual estimate | M7 | Planned |
 | E20 | Conformal prediction with a "too uncertain to call" outcome | M7 | Planned |
 | E21 | External validation on a different population | M8 | Planned |

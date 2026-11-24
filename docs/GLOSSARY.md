@@ -164,6 +164,34 @@ stays explainable.
 **Odds.** Another way to express risk: a 50% risk is odds of 1 to 1; a 20% risk is odds of 1 to 4. "Multiplies the
 odds by 2" roughly doubles a small risk.
 
+## Explaining a model
+
+**Permutation importance.** How much worse the model gets on women it hasn't seen when one input is shuffled among them,
+which breaks its link to the outcome. A bigger fall means the model relies more on that input. *Here: glucose costs
+0.17 of AUC, BMI 0.07, age 0.04.*
+
+**Partial dependence.** The model's average predicted risk as one input moves across its range, with every woman keeping
+her other values.
+
+**ICE curve (individual conditional expectation).** The same idea for one woman: how her own predicted risk would move
+if only that one input changed. Plotting many shows whether everyone responds alike.
+
+**SHAP.** A method that shares credit for a woman's prediction among the inputs by averaging each input's effect over
+every order the inputs could be added. *Here it is checked against the model's exact contributions and agrees to within
+0.002 on the log-odds scale.*
+
+**Contribution.** How much one input adds to a woman's log-odds compared with a typical woman. The page shows it as an odds
+multiplier ("x2.0" doubles her odds).
+
+**Log-odds.** Odds on a log scale, the scale a logistic regression adds effects on. Adding 0.69 doubles the odds.
+
+**Bootstrap.** Refitting the model on many resamples of the same women (drawn with replacement) to see how much a result
+would vary. *Here: 300 refits to test whether BMI's flat stretch is real.*
+
+**Counterfactual.** The smallest change to the inputs that would change the model's answer, for example how much lower
+a woman's glucose would need to be to fall below the cut-off. It explains the model and does not say that making the
+change would lower her real risk.
+
 ## Missing data
 
 **Missing value.** A measurement that was never taken. *In this data, a missing value is recorded as zero, which is

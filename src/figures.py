@@ -414,6 +414,87 @@ def m5_bands():
     return fig
 
 
+def m6_importance():
+    """Milestone 6: which inputs matter. Permutation importance (left) and SHAP share for two model types (right)."""
+    m6 = _metrics()["m6"]
+    names = {"Pregnancies": "Pregnancies", "Glucose": "Glucose", "BloodPressure": "Blood pressure", "BMI": "BMI",
+             "DiabetesPedigreeFunction": "Family history", "Age": "Age"}
+    perm = m6["permutation"]
+    order = sorted(perm, key=lambda f: perm[f]["mean"])
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.4, 3.8), gridspec_kw={"width_ratios": [1, 1.05]})
+    ys = np.arange(len(order))
+    means = np.array([perm[f]["mean"] for f in order])
+    lows = np.array([perm[f]["low"] for f in order])
+    highs = np.array([perm[f]["high"] for f in order])
+    a1.barh(ys, means, color=GREEN, height=0.55)
+    a1.errorbar(means, ys, xerr=[means - lows, highs - means], fmt="none", ecolor=INK, elinewidth=1.2, capsize=3)
+    a1.axvline(0, color=INK, linewidth=1)
+    a1.set_yticks(ys, [names[f] for f in order])
+    a1.set_xlabel("Drop in AUC when the input is scrambled")
+    a1.set_title("Scrambling glucose costs the most")
+    a1.grid(axis="y", visible=False)
+    pub, bst = m6["shap"]["share"], m6["boosted"]["boosted_share"]
+    order2 = sorted(pub, key=lambda f: pub[f])
+    ys2 = np.arange(len(order2))
+    a2.barh(ys2 + 0.19, [pub[f] * 100 for f in order2], height=0.36, color=GREEN, label="Published model")
+    a2.barh(ys2 - 0.19, [bst[f] * 100 for f in order2], height=0.36, color=WARM, label="Boosted trees (XGBoost)")
+    a2.set_yticks(ys2, [names[f] for f in order2])
+    a2.set_xlabel("Share of total SHAP importance (%)")
+    a2.set_title("Two model types rank the inputs alike")
+    a2.legend(frameon=False, fontsize=9, loc="lower right")
+    a2.grid(axis="y", visible=False)
+    fig.tight_layout()
+    return fig
+
+
+def m6_curves():
+    """Milestone 6: partial dependence (average) and ICE (individual women) for glucose, BMI and age."""
+    from . import explain
+    from .modeling import current_features
+    X, y = load_data()
+    Xc = X[current_features(list(X.columns))]
+    model = explain.fit_current(Xc, y)
+    fig, axes = plt.subplots(1, 3, figsize=(11, 3.7), sharey=True)
+    for ax, (f, title, unit) in zip(axes, [("Glucose", "Glucose", "mg/dL"), ("BMI", "BMI", "kg/m\u00b2"), ("Age", "Age", "years")]):
+        grid, avg, ice = explain.partial_dependence(model, Xc, f)
+        for row in ice:
+            ax.plot(grid, row * 100, color=GREEN, alpha=0.16, linewidth=1)
+        ax.plot(grid, avg * 100, color=INK, linewidth=2.4)
+        ax.set_xlabel(f"{title} ({unit})")
+        ax.set_title(title)
+        if f == "BMI":
+            ax.axvline(30, color=WARM, linewidth=1.2, linestyle="--")
+            ax.text(30.6, 93, "flat stretch\nstarts near 30", color=WARM, fontsize=9, va="top",
+                    bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.85, "pad": 1.5})
+    axes[0].set_ylabel("Predicted risk (%)")
+    axes[0].set_ylim(0, 100)
+    fig.tight_layout()
+    return fig
+
+
+def m6_counterfactual():
+    """Milestone 6: share of flagged women a realistic change in glucose or BMI would clear."""
+    cf = _metrics()["m6"]["counterfactual"]
+    ratios = list(cf)
+    fig, ax = plt.subplots(figsize=(8.2, 3.7))
+    w = 0.25
+    series = [("Glucose lower by up to 20 mg/dL", "glucose_alone", GREEN), ("BMI lower by up to 10%", "bmi_alone", WARM),
+              ("Either one", "either", "#15563A")]
+    for i, (name, key, color) in enumerate(series):
+        xs = np.arange(len(ratios)) + (i - 1) * w
+        vals = [cf[r][key] * 100 for r in ratios]
+        ax.bar(xs, vals, width=w * 0.92, color=color, label=name)
+        for x, v in zip(xs, vals):
+            ax.text(x, v + 1.2, f"{v:.0f}%", ha="center", fontsize=9, color=INK)
+    ax.set_xticks(np.arange(len(ratios)), [f"{r}\u00d7 cut-off ({cf[r]['cutoff']:.2f})\n{cf[r]['flagged']} of 768 flagged" for r in ratios])
+    ax.set_ylim(0, 100)
+    ax.set_ylabel("Percent of flagged women cleared")
+    ax.set_title("Share of flagged women a realistic change would clear")
+    ax.legend(frameon=False, fontsize=9, loc="upper left")
+    ax.grid(axis="x", visible=False)
+    return fig
+
+
 ALL = {
     "missing": missing_values,
     "lucky_split": lucky_split,
@@ -426,6 +507,9 @@ ALL = {
     "m5_rebalance": m5_rebalance,
     "m5_cost": m5_cost,
     "m5_bands": m5_bands,
+    "m6_importance": m6_importance,
+    "m6_curves": m6_curves,
+    "m6_counterfactual": m6_counterfactual,
     "strategies": strategy_comparison,
     "recovery": recovery,
     "spread": imputation_spread,

@@ -11,8 +11,8 @@ Item numbers (E08, B10) refer to [ENHANCEMENTS_AND_BUGS.md](ENHANCEMENTS_AND_BUG
 | M3 | Non-linear effects and feature engineering | Done 2026-11-16 | Can curved effects and interactions fix the weak results for women 45 and over? | 05 |
 | M4 | Model zoo, tuning and nested cross-validation | Done 2026-11-17 | Given a fair, tuned contest, does any model beat logistic regression? | 06 |
 | M5 | Class imbalance and cost-based decisions | Done 2026-11-23 | Do resampling tricks help, or is moving the cut-off enough? | 07 |
-| M6 | Explainability | Next | Why did the model give this woman this number? | 08 |
-| M7 | Uncertainty | Planned | How sure is the model about one person's estimate? | 09 |
+| M6 | Explainability | Done 2026-11-23 | Why did the model give this woman this number? | 08 |
+| M7 | Uncertainty | Next | How sure is the model about one person's estimate? | 09 |
 | M8 | External validation | Planned | Does it work on people who are not in this dataset? | 10 |
 | M9 | Unsupervised structure | Planned | Are there natural groups or odd records the labels don't show? | 11 |
 | M10 | Production polish | Planned | Could someone else rebuild, test and trust this? | none |
@@ -86,10 +86,16 @@ What came out of it:
 
 ## M6. Explainability
 
-- E17: SHAP values, permutation importance, partial-dependence and ICE curves for the M4 winner.
+- E17: permutation importance, partial-dependence and ICE curves, and SHAP values for the published model (the M4 winner was kept, D14).
 - E18: counterfactuals: the smallest realistic change that would move a woman below the cut-off.
 
-**Exit check:** the app explains any model, not only a linear one.
+**Exit check, met:** the page explains any woman's number, and every explanation tool is checked against something.
+
+What came out of it:
+- Glucose, BMI and age are the only inputs the model clearly relies on (AUC lost when scrambled: 0.17, 0.07, 0.04; the other three 0.01 or less, ranges including zero).
+- SHAP reproduces the model's exact contributions to within 0.002 log-odds; a boosted-tree model ranks the inputs in the same order (rank correlation 1.0).
+- BMI's flat stretch is real but not provably flat: from BMI 30 to 42 the odds multiply by 1.2 (range 0.7 to 2.3), where a steady rise would be about 29. A straight line for BMI scores 0.006 AUC lower (p = 0.15), so the curve's benefit is likely, not proven (D21).
+- At the 5 times cut-off, 477 of 768 women are flagged, and a realistic change in glucose or BMI would clear only 29% of them (D22). The box on the page says it explains the model and is not advice.
 
 ## M7. Uncertainty
 

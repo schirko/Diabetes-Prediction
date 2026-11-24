@@ -10,6 +10,8 @@ optuna
 xgboost
 # Rebalancing comparison (Milestone 5)
 imbalanced-learn
+# Explanations (Milestone 6)
+shap
 # Notebooks (run inside PyCharm, or all at once with: python -m src.run_notebooks)
 jupyter
 ipykernel

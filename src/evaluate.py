@@ -275,6 +275,13 @@ def milestone5(Xc, y, p, rule, old_cutoff) -> dict:
     return res
 
 
+def milestone6(Xc, y) -> dict:
+    """Explainability: importance, curve shapes, SHAP check, counterfactuals (notebook 08)."""
+    from . import decision, explain
+    cutoffs = {r: decision.cutoff_for_ratio(r) for r in decision.COST_RATIOS}
+    return explain.run(Xc, y, cutoffs, decision.DEFAULT_RATIO)
+
+
 def main():
     warnings.filterwarnings("ignore")
     REPORTS.mkdir(exist_ok=True)
@@ -323,6 +330,8 @@ def main():
         "m4": milestone4(Xc, y),
         # --- Milestone 5: rebalancing, cost-based cut-offs, age bands (notebook 07)
         "m5": milestone5(Xc, y, p_current, rule, current["threshold_screening"]["threshold"]),
+        # --- Milestone 6: explainability (notebook 08)
+        "m6": milestone6(Xc, y),
         # --- The current model: what the web page runs and reports
         "current": current,
     }

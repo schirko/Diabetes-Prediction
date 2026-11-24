@@ -8,7 +8,7 @@ Each answer is the current one; when a later milestone changes it, the answer is
 under "Changed". Evidence points to the notebooks; item numbers (E10, B12, D11) refer to the
 [tracker](ENHANCEMENTS_AND_BUGS.md) and [decisions](DECISIONS.md).
 
-Last updated: 2026-11-23, after Milestone 8.
+Last updated: 2026-11-23, after Milestone 9.
 
 **How solid each answer is:**
 
@@ -39,6 +39,7 @@ kept separate (nested cross-validation).
 | Does rebalancing help? | No: same ranking, distorted risks | Firm |
 | Does it beat a simple glucose rule? | Yes: 21 more cases found for about the same number of false alarms | Firm |
 | Does it work outside this data? | The ranking does (AUC 0.88 on 961 US women). The risk numbers do not: 25% predicted against 3.9% actual | Likely (only 37 cases) |
+| Are there hidden groups or odd records? | No stable groups; odd records found but harmless; groups and oddness scores don't help the model | Firm |
 
 ## 1. How good is the model?
 
@@ -329,6 +330,44 @@ group.
 
 **Evidence.** Notebook 09, and the range on the risk meter and the "How sure can the model be?" box on the project page.
 
+## 13. Is there hidden structure in the data?
+
+**In plain terms.** No. The women form one continuous cloud rather than separate types, and the odd records are real but
+make no difference to the model. One useful thing came out of it: a way of telling when a woman's numbers are unlike the
+women the model learned from.
+
+**Answer.** All of this was done without using the diabetes label, which was only added afterwards.
+
+- **The map.** The first two directions of greatest spread keep 54% of the variation (the first alone 33%), so six inputs
+  are six separate things. UMAP keeps each woman's neighbours better than PCA (0.94 against 0.83) and draws filaments, but no
+  islands. Colour sorts left to right on the PCA map with a broad overlap in the middle.
+- **Groups.** The best split is two groups (separation 0.23, against 0.19 for data with no groups in it). Groups reappear
+  when the women are resampled at most 76% of the time (0.8 would be reliable), falling to about 50% by six groups. A second
+  method prefers four groups, which the stability check does not support (0.70).
+- **What the groups are.** Two groups: 419 younger women (median age 25, 18% with diabetes) and 349 older ones (age 41, 55%).
+  Three groups add younger women with a high BMI (median 37.8, 49% with diabetes). They restate age, weight and glucose.
+- **Do they help the model?** No. AUC with group membership 0.852, with distances 0.851, with an oddness score 0.852, against
+  0.853. None of the ranges excludes zero.
+- **Odd records.** Three methods (isolation forest, local outlier factor, Mahalanobis distance) agree with each other
+  (0.81 to 0.95). With all eight columns the skinfold of 99 is number 3 of 768, the insulin of 846 number 4, the BMI of
+  67.1 number 8, 17 pregnancies number 26 and blood pressure 24 number 29. On the six model inputs these rank lower (13 to
+  165), because insulin and skinfold are not among them. Rule-of-thumb breaks are few: 3 insulin readings over 600, 2
+  skinfolds over 60, 4 blood pressures under 40.
+- **Harm.** In two of three methods the unusual 5% (39 women) were predicted a little worse (AUC 0.74 against 0.86); the
+  third saw no difference, and across all women the link between oddness and error is near zero. Removing the 15 most unusual
+  from training changes AUC by -0.0001 (-0.003 to +0.002).
+- **The page notice.** Distance from the typical Pima woman is computed on the page. A quarter of NHANES women (26%) are
+  beyond the line that 95 in 100 Pima women stay inside, 11% beyond the 99th. Unusual Pima women have wider ranges (28 points
+  against 19). But the notice does not fix the risk level: unusual and typical NHANES women are both predicted at about 25%
+  while 7.9% and 2.4% have diabetes.
+
+**How solid.** Firm that no useful groups exist and that cleaning odd records does not help. The statement that unusual
+women are predicted worse is weak (39 women, two of three methods).
+
+**Evidence.** Notebook 11 and Story 13 on the project page.
+
+**Changed.** New in M9.
+
 ## What didn't work
 
 Ideas tested and dropped, with the result, so they aren't retried without a new reason. Most are ways of making the
@@ -351,4 +390,6 @@ model more complicated; none of them helped.
 | Class weights or SMOTE instead of moving the cut-off | Same ranking (AUC 0.851 to 0.853), same false alarms to catch 85% (152 to 154), risks too high (43 to 44% against 35%) | Notebook 07, 7.2 and 7.3 |
 | A separate cut-off for each age band | No better than one shared cut-off (42 against 40 per 100 women at 5 times) | Notebook 07, 7.9 |
 | Rescaling the risks for a new population | Fixes the average (error score 0.124 to 0.032) but needs outside outcomes, and adds little over quoting the average (0.037) | Notebook 10, 10.5 |
+| Cluster membership, distance to cluster centres or an oddness score as extra inputs | AUC 0.851 to 0.852 against 0.853 | Notebook 11, 11.4 |
+| Dropping the 15 most unusual women from training | AUC change -0.0001 | Notebook 11, 11.7 |
 | Straight line for BMI instead of a curve | 0.006 AUC lower, could be chance (p = 0.15), so the curve stays | Notebook 08, 8.4 |

@@ -216,6 +216,7 @@ BMI and age are allowed to bend, so risk can level off or fall where the data sa
       <div class="meter" aria-hidden="true"><div class="fill" id="fill"></div><div class="range" id="rangeband"></div><div class="cut" id="cutmark"><span id="cutlab"></span></div></div>
       <div class="scale" aria-hidden="true"><span>0%</span><span>50%</span><span>100%</span></div>
       <p class="note" id="rangetext" style="font-size:13.5px;margin:18px 0 0"></p>
+      <p class="note" id="reachtext" style="font-size:13.5px;margin:8px 0 0;display:none"></p>
       <div class="verdict" id="verdict"></div>
       <div class="verdict" id="sure" style="display:block"></div>
     </div>
@@ -262,7 +263,7 @@ BMI and age are allowed to bend, so risk can level off or fall where the data sa
 <div class="warnbox"><b>This is not a medical tool.</b> The data is 768 women of Pima heritage aged 21 and over, collected near
 Phoenix, Arizona and published in 1988. The model has not been tested on anyone else. It is here to show how a risk model is
 built and judged, not to assess anyone's health. It has since been run, unchanged, on one outside group of women. It ranked
-them well but its risk numbers were far too high (<a href="#story12">Story 12</a>).</div>
+them well but its risk numbers were far too high (<a href="#story12">Story 12</a>). The page also tells you when the numbers you enter are unlike the women the model learned from (<a href="#story13">Story 13</a>).</div>
 
 <h2 id="findings">What we found</h2>
 <p class="note">The main results, each with the chart behind it. For every conclusion, how solid it is and where the evidence
@@ -519,6 +520,34 @@ is, see the <a href="docs/FINDINGS.html">findings</a>. Unfamiliar word? Try the 
   risks and the cut-off. Differences in how the data was collected can't be separated from differences between the women.</p>
 </div>
 
+<div class="story" id="story13">
+  <h3>13. Is there anything hidden in the data?</h3>
+  <p>Every test so far used the diabetes label. This one left it out while looking for two things: natural groups of women, and
+  odd records. The women do not fall into groups. A flat map of them (the two directions of greatest spread keep only {{y_pc2}} of the
+  variation) shows one cloud, and splitting them into groups scores {{y_sil2}} for the best split against {{y_null2}} for data with
+  no groups in it at all. The groups also do not hold steady when the women are resampled (best stability {{y_stab_max}}, where 0.8 would
+  be reliable). Where groups do appear they restate what we know: older, heavier, higher-glucose women are more likely to have
+  diabetes. Adding group membership or an oddness score to the model does not help (AUC {{y_auc_member}} and {{y_auc_odd}} against
+  {{y_auc_base}}).</p>
+  <figure>
+    <img src="images/m9_maps.png" alt="Two scatter maps of the 768 women, one from PCA and one from UMAP, coloured green for no diabetes and orange for diabetes. Both show one continuous cloud with the colours overlapping through the middle.">
+    <figcaption><span class="howto"><b>How to read it:</b> each dot is one woman, placed so that similar women are close
+    together. The colours were added afterwards. If there were separate groups, there would be separate islands.</span></figcaption>
+  </figure>
+  <p>The odd-record search finds the readings you would expect. With all eight columns, the skinfold of 99 is number {{y_skin_rank}}
+  on the list of most unusual women (of 768), the insulin of 846 is number {{y_ins_rank}} and the BMI of 67 is number {{y_bmi_rank}}. Removing the {{y_removed}} most unusual women from training
+  changes the model's AUC by {{y_trim_diff}}, which is nothing, so they stay in and are recorded.</p>
+  <p>The one use that did come out of it is the notice under the risk meter. Women far from the typical Pima woman get a wider
+  range of possible risks ({{y_w_odd}} points against {{y_w_rest}}), and {{y_nh_out}} of the NHANES women from Story 12 would trigger the
+  notice. It tells you the estimate rests on little data. It does not correct the risk: the NHANES women who triggered it were
+  predicted at about the same risk as the rest, but {{y_obs_flag}} of them had diabetes against {{y_obs_typ}} of the others.</p>
+  <figure>
+    <img src="images/m9_reach.png" alt="Histogram of each woman's distance from the typical Pima woman, for Pima women (orange, mostly between 1 and 3) and NHANES women (green, shifted right with a long tail past 4), with dashed lines where 95 and 99 in 100 Pima women are closer.">
+    <figcaption><span class="howto"><b>How to read it:</b> further right means less like the Pima women. The dashed lines mark
+    where 95 and 99 in 100 Pima women are closer. A quarter of the NHANES women are beyond the first line.</span></figcaption>
+  </figure>
+</div>
+
 <h2 id="read">Read more</h2>
 <div class="reading">
   <a href="docs/OVERVIEW.html"><span>5 minutes</span><b>Start here</b>The whole project in plain English: the question, the data, how good the model is and what it can't do.</a>
@@ -651,6 +680,20 @@ function riskRange(values, missing) {
 // Conformal call at one error level: below `low` is a confident no, above `high` a confident yes, in between too uncertain.
 function conformalCall(p, th) { return p < th.low ? "no" : p > th.high ? "yes" : "uncertain"; }
 
+// How far is this woman from the typical Pima woman, counting inputs that move together as one? Mirrors structure.distance.
+const R = D.reach;
+function reachDistance(values, missing) {
+  const n = R.features.length, z = R.features.map((f, j) => {
+    const i = F.indexOf(f);
+    let x = missing[i] ? R.fill[j] : values[i];
+    x = Math.min(Math.max(x, R.lo[j]), R.hi[j]);
+    return (x - R.mu[j]) / R.sd[j];
+  });
+  let q = 0;
+  for (let a = 0; a < n; a++) for (let b = 0; b < n; b++) q += z[a] * R.inv[a][b] * z[b];
+  return Math.sqrt(Math.max(q, 0));
+}
+
 function buildFields() {
   const host = document.getElementById("fields");
   F.forEach((f, i) => {
@@ -697,6 +740,9 @@ function render() {
     : "In a screening programme she would not be flagged."}</span>`;
 
   renderWhatIf(flagged);
+  const dist = reachDistance(state.v, state.miss), rt = document.getElementById("reachtext");
+  rt.style.display = dist > R.q95 ? "block" : "none";
+  rt.innerHTML = `<b>These measurements are unusual.</b> Fewer than 5 in 100 of the Pima women the model learned from are this far from the typical woman, so its estimate here rests on little data and should be trusted less.`;
   const rg = riskRange(state.v, state.miss);
   const band = document.getElementById("rangeband");
   band.style.left = (rg.lo * 100) + "%"; band.style.width = Math.max(0.5, (rg.hi - rg.lo) * 100) + "%";

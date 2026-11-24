@@ -677,6 +677,76 @@ def m8_cutoffs():
     return fig
 
 
+def m9_maps():
+    """Milestone 9: two maps of the 768 women, coloured by outcome after the fact."""
+    frame = pd.read_csv(REPORTS / "m9_maps.csv")
+    trust = _metrics()["m9"]["trust"]
+    fig, axes = plt.subplots(1, 2, figsize=(10.4, 4.2))
+    for ax, (a, b, title, key) in zip(axes, [("pc1", "pc2", "PCA: a flat view that keeps the largest spreads", "pca"),
+                                              ("umap1", "umap2", "UMAP: a map that keeps neighbours together", "umap")]):
+        for out, col, lab in [(0, GREEN, "No diabetes"), (1, WARM, "Diabetes")]:
+            m = frame.outcome == out
+            ax.scatter(frame.loc[m, a], frame.loc[m, b], s=12, color=col, alpha=0.55, linewidths=0, label=lab)
+        ax.set_title(title, fontsize=10.5)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.text(0.02, 0.02, f"neighbours kept: {trust[key]:.2f} of 1", transform=ax.transAxes, fontsize=9, color=MUTED)
+        ax.grid(False)
+    axes[0].legend(frameon=False, fontsize=9, loc="upper right")
+    fig.tight_layout()
+    return fig
+
+
+def m9_clusters():
+    """Milestone 9: do natural groups exist? Real data against data with no groups, and how stable the groups are."""
+    scan = _metrics()["m9"]["scan"]
+    ks = [int(k) for k in scan]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.4, 3.7))
+    a1.plot(ks, [scan[str(k)]["silhouette"] for k in ks], "o-", color=GREEN, linewidth=2, label="The 768 women")
+    a1.fill_between(ks, [scan[str(k)]["null_mean"] for k in ks], [scan[str(k)]["null_high"] for k in ks], color=MUTED, alpha=0.3, linewidth=0,
+                    label="Data with no groups (typical to 95th)")
+    a1.set_xlabel("Number of groups asked for")
+    a1.set_ylabel("Separation score (silhouette)")
+    a1.set_ylim(0, 0.5)
+    a1.set_title("Barely above data with no groups in it")
+    a1.legend(frameon=False, fontsize=9, loc="upper right")
+    a2.plot(ks, [scan[str(k)]["stability"] for k in ks], "o-", color=WARM, linewidth=2)
+    a2.axhline(0.8, color=MUTED, linewidth=1, linestyle="--")
+    a2.text(ks[-1], 0.81, "0.8 = groups reappear reliably", ha="right", fontsize=9, color=MUTED)
+    a2.set_xlabel("Number of groups asked for")
+    a2.set_ylabel("Stability (1 = same groups every time)")
+    a2.set_ylim(0, 1)
+    a2.set_title("Groups are not stable beyond two or three")
+    fig.tight_layout()
+    return fig
+
+
+def m9_reach():
+    """Milestone 9: how far each woman is from the typical Pima woman, for the Pima and NHANES women."""
+    from . import external, structure
+    X, _ = load_data()
+    ref = structure.reference(X)
+    nh = external.load_table()
+    d_nh = structure.distance(ref, nh)
+    fig, ax = plt.subplots(figsize=(8.4, 3.6))
+    bins = np.linspace(0, 9, 46)
+    ax.hist(ref["distances"], bins=bins, density=True, color=WARM, alpha=0.5, label="Pima women")
+    ax.hist(d_nh, bins=bins, density=True, color=GREEN, alpha=0.5, label="NHANES women")
+    top = ax.get_ylim()[1]
+    ax.axvline(ref["q95"], color=INK, linewidth=1, linestyle="--")
+    ax.axvline(ref["q99"], color=INK, linewidth=1, linestyle=":")
+    ax.text(ref["q95"] - 0.08, top * 0.97, "95 in 100 Pima\nwomen are closer", fontsize=9, color=INK, ha="right", va="top")
+    ax.text(ref["q99"] + 0.08, top * 0.97, "99 in 100", fontsize=9, color=INK, ha="left", va="top")
+    ax.set_xlim(0, 7)
+    ax.set_xlabel("Distance from the typical Pima woman (in combined standard deviations)")
+    ax.set_ylabel("Share of women")
+    ax.set_yticks([])
+    ax.set_title("A quarter of NHANES women sit beyond 95 in 100 Pima women")
+    ax.legend(frameon=False, fontsize=9.5, loc="upper right", bbox_to_anchor=(1.0, 0.7))
+    ax.grid(False)
+    return fig
+
+
 ALL = {
     "missing": missing_values,
     "lucky_split": lucky_split,
@@ -698,6 +768,9 @@ ALL = {
     "m8_shift": m8_shift,
     "m8_calibration": m8_calibration,
     "m8_cutoffs": m8_cutoffs,
+    "m9_maps": m9_maps,
+    "m9_clusters": m9_clusters,
+    "m9_reach": m9_reach,
     "strategies": strategy_comparison,
     "recovery": recovery,
     "spread": imputation_spread,

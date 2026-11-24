@@ -31,8 +31,8 @@ Last updated: 2026-11-23
 | E20 | Conformal prediction with a "too uncertain to call" outcome, shown on the page at the 90% and 80% levels, guarantee verified on 300 splits | M7 | Done |
 | E21 | External validation on a different population: frozen model on 961 NHANES women (ranking holds, AUC 0.88; risks far too high) | M8 | Done |
 | E22 | Population-shift measurement (domain AUC 0.92), recalibration by one shift, subgroup checks by age and ethnic group | M8 | Done |
-| E23 | Clustering and low-dimensional maps (PCA, UMAP) | M9 | Planned |
-| E24 | Anomaly detection as a data-quality check | M9 | Planned |
+| E23 | Clustering and low-dimensional maps (PCA, UMAP): one cloud, no stable groups; groups and distances do not improve AUC | M9 | Done |
+| E24 | Anomaly detection as a data-quality check (three methods, known extremes found); removing odd records changes nothing; page notice for unusual inputs | M9 | Done |
 | E25 | Model card | M10 | Planned |
 | E26 | GitHub Actions: tests and notebooks re-run on every push | M10 | Planned |
 | E27 | Experiment tracking with MLflow | M10 | Planned |

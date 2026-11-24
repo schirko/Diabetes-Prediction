@@ -35,6 +35,7 @@ Every finding, organised by question and marked by how solid it is, is in [docs/
 | `src/decision.py` | Milestone 5: rebalancing comparison, cost-based cut-offs, decision curve, age-band policies |
 | `src/explain.py` | Milestone 6: permutation importance, BMI plateau test, SHAP check, boosted-tree comparison, counterfactuals |
 | `src/uncertainty.py` | Milestone 7: bootstrap ranges exported for the page, spread and coverage checks, conformal prediction |
+| `src/structure.py` | Milestone 9: maps (PCA, UMAP), cluster search, odd-record checks, and the distance used by the page's unusual-inputs notice |
 | `src/external.py` | Milestone 8: builds the NHANES table and tests the frozen model on it (ranking, risks, cut-offs, subgroups) |
 | `src/evaluate.py` | Runs the whole evaluation, writes `reports/` |
 | `src/figures.py` | Charts shared by the notebooks and the site |

@@ -297,6 +297,23 @@ def milestone8() -> dict:
     return external.run({r: decision.cutoff_for_ratio(r) for r in decision.COST_RATIOS})
 
 
+def export_reach():
+    """Write the reference the page uses for its 'unlike the women the model learned from' notice."""
+    import json
+    from . import structure
+    from .data import load_data
+    X, _ = load_data()
+    ref = structure.export_reference(structure.reference(X))
+    (REPORTS / "reach.json").write_text(json.dumps(ref, separators=(",", ":")))
+
+
+def milestone9(p) -> dict:
+    """Clusters, maps and unusual records (notebook 11)."""
+    from . import structure
+    export_reach()
+    return structure.run(cv_splitter(), p)
+
+
 def main():
     warnings.filterwarnings("ignore")
     REPORTS.mkdir(exist_ok=True)
@@ -350,6 +367,7 @@ def main():
         # --- Milestone 7: uncertainty (notebook 09)
         "m7": milestone7(Xc, y, p_current),
         "m8": milestone8(),
+        "m9": milestone9(p_current),
         # --- The current model: what the web page runs and reports
         "current": current,
     }

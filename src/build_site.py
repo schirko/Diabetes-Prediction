@@ -42,6 +42,8 @@ NOTEBOOK_BLURBS = {
                                      "and the eight-input baseline model.",
     "04_missing_data": "Seven ways to handle the missing readings, a test of whether insulin can be guessed back, "
                        "and why the published model now leaves insulin and skinfold out.",
+    "11_unsupervised_structure": "Maps of the women, a search for natural groups (there are none that hold up), a check of the "
+                                 "odd records, and a notice for women who look unlike the ones the model learned from.",
     "10_external_validation": "The finished model, unchanged, tested on 961 women from a US national health survey: the ranking "
                               "holds up, the risk numbers do not, and what that means for the cut-offs and for different groups of women.",
     "09_uncertainty": "A 95% range around each woman's risk, a simulation of whether that range is honest, and a "
@@ -243,7 +245,22 @@ def tokens(m: dict) -> dict:
         "x_brier": f"{m8['calibration']['brier']:.3f}", "x_brier_avg": f"{m8['calibration']['brier_prevalence_only']:.3f}",
         "x_brier_recal": f"{m8['recalibrated']['brier']:.3f}",
     }
-    extra = ratio_rows | m6_tokens | m7_tokens | m8_tokens | {
+    m9 = m["m9"]
+    ft, rc, er = m9["feature_test"], m9["reach"], m9["error_check"]["isolation"]
+    m9_tokens = {
+        "y_pc2": pct(sum(m9["pca"]["explained"][:2])), "y_sil2": f"{m9['scan']['2']['silhouette']:.2f}",
+        "y_null2": f"{m9['scan']['2']['null_mean']:.2f}", "y_stab_max": f"{max(v['stability'] for v in m9['scan'].values()):.2f}",
+        "y_auc_base": f"{ft['base_auc']:.3f}", "y_auc_member": f"{ft['member']['auc']:.3f}",
+        "y_auc_dist": f"{ft['distance']['auc']:.3f}", "y_auc_odd": f"{ft['anomaly']['auc']:.3f}",
+        "y_trim_diff": f"{m9['trim_test']['diff']:+.4f}", "y_removed": str(m9["n_removed"]),
+        "y_ins_rank": f"{m9['eight_inputs']['insulin_846']['rank_of_768']:.0f}",
+        "y_skin_rank": f"{m9['eight_inputs']['skinfold_99']['rank_of_768']:.0f}",
+        "y_bmi_rank": f"{m9['eight_inputs']['bmi_67']['rank_of_768']:.0f}",
+        "y_nh_out": pct(rc["nhanes_over_q95"]), "y_nh_out99": pct(rc["nhanes_over_q99"]),
+        "y_w_odd": f"{rc['pima_over_q95_width'] * 100:.0f}", "y_w_rest": f"{rc['pima_rest_width'] * 100:.0f}",
+        "y_obs_flag": pct(rc["flagged"]["observed"]), "y_obs_typ": pct(rc["typical"]["observed"]),
+    }
+    extra = ratio_rows | m6_tokens | m7_tokens | m8_tokens | m9_tokens | {
         "pub_ratio": str(pub["ratio"]), "cut85": f"{scr['threshold']:.2f}", "cut85_pct": pct(scr["threshold"]),
         "old_ratio": f"{m5['costs']['old_implied_ratio']:.1f}",
         "cost5_old": f"{c5['cost_per_100']['Old rule (catch 85%)']:.0f}",
@@ -355,6 +372,7 @@ def build():
                  for a, v in metrics["m7"]["page_thresholds"].items()},
         "oof": {"p": [round(float(v), 6) for v in oof["p_current"]], "y": [int(v) for v in oof["outcome"]]},
         "check": model["check"],
+        "reach": json.loads((ROOT / "reports" / "reach.json").read_text()),
     }
     page = (ROOT / "site_template" / "index.html").read_text(encoding="utf-8")
     page = page.replace("__DATA__", json.dumps(data, separators=(",", ":")))

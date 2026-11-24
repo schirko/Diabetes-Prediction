@@ -225,6 +225,32 @@ occurs, or how it was measured. *Here: the NHANES women are older and lighter, a
 **Recalibration.** Adjusting a model's risks so they match what happens in a new group, without changing how it ranks women. *Here:
 one shift applied to every risk, fitted on part of the NHANES women and tested on the rest.*
 
+## Finding structure
+
+**Unsupervised.** Looking for patterns without using the answer (here, without using who has diabetes). The opposite of the
+prediction work in the other notebooks, which learns from the answer.
+
+**PCA (principal component analysis).** A way of flattening many measurements onto a few directions, chosen to keep as much of
+the spread between women as possible. *Here: the first two directions keep 54% of the spread.*
+
+**UMAP.** Another way of drawing a map of the data, which instead tries to keep each woman's nearest neighbours near her. It can
+draw shapes that look like groups even when none exist, so a pattern on a UMAP is a reason to check, not a finding.
+
+**Cluster / clustering.** Splitting people into groups of similar people. *Here: k-means, which gathers women around group
+centres.* It always returns groups, whether or not any exist.
+
+**Silhouette (separation score).** How well clustered the groups are: 1 is tight and far apart, near 0 is overlapping. It is
+only meaningful compared with data that has no groups in it.
+
+**Stability.** Whether clustering two resamples of the same women gives the same groups (1 is identical). Groups that don't
+reappear are not groups.
+
+**Anomaly detection (outlier detection).** Scoring how unusual each record is. *Used here as a data-quality check: three methods
+(isolation forest, local outlier factor and Mahalanobis distance) are compared.*
+
+**Mahalanobis distance.** How far a woman is from the typical woman, counting measurements that move together (such as age and
+pregnancies) as one rather than several. *The page's "unusual measurements" notice uses it.*
+
 ## Missing data
 
 **Missing value.** A measurement that was never taken. *In this data, a missing value is recorded as zero, which is

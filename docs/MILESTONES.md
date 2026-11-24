@@ -14,8 +14,8 @@ Item numbers (E08, B10) refer to [ENHANCEMENTS_AND_BUGS.md](ENHANCEMENTS_AND_BUG
 | M6 | Explainability | Done 2026-11-23 | Why did the model give this woman this number? | 08 |
 | M7 | Uncertainty | Done 2026-11-23 | How sure is the model about one person's estimate? | 09 |
 | M8 | External validation | Done 2026-11-23 | Does it work on people who are not in this dataset? | 10 |
-| M9 | Unsupervised structure | Next | Are there natural groups or odd records the labels don't show? | 11 |
-| M10 | Production polish | Planned | Could someone else rebuild, test and trust this? | none |
+| M9 | Unsupervised structure | Done 2026-11-23 | Are there natural groups or odd records the labels don't show? | 11 |
+| M10 | Production polish | Next | Could someone else rebuild, test and trust this? | none |
 | M11 | Presentation | Planned, after M10 | Can the whole project be told in 12 slides to a non-analyst? | none |
 
 ## M1. Honest baseline and first app (done)
@@ -129,8 +129,13 @@ What came out of it:
 - E23: clustering and low-dimensional maps (PCA, UMAP) to look for distinct patient profiles.
 - E24: anomaly detection as a data-quality check (the insulin value of 846, skinfold of 99).
 
-**Exit check:** findings either feed a new feature or are reported as "nothing useful here".
+**Exit check, met:** "nothing useful here" for new features (notebook 11 and Story 13 on the page), plus one notice on the page.
 
+What came out of it:
+- There are no natural groups. The best split of the 768 women scores 0.23 against 0.19 for data with no groups in it, and the groups do not hold steady when the women are resampled (best stability 0.76; 0.8 would be reliable). Where groups do appear they restate age, weight and glucose (D29).
+- Adding group membership, distance to a group centre or an oddness score to the model does not help (AUC 0.852, 0.851 and 0.852 against 0.853).
+- Odd records are easy to find, and three methods agree (0.81 to 0.95). With all eight columns the skinfold of 99, the insulin of 846 and the BMI of 67 rank 3rd, 4th and 8th most unusual of 768. Removing the 15 most unusual women from training changes AUC by -0.0001, so they are kept and recorded (D30).
+- One thing is used: the page now says when the numbers entered are unlike the Pima women the model learned from (beyond what 95 in 100 look like). A quarter of the NHANES women would trigger it. It is a warning, not a correction (D31).
 ## M10. Production polish
 
 - E25: a model card (intended use, limits, performance by group).

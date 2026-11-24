@@ -3,7 +3,7 @@
 This page explains the whole project without statistics. Words in **bold** are explained in the
 [glossary](GLOSSARY.md). For the full list of conclusions, see the [findings](FINDINGS.md).
 
-Last updated: 2026-11-23, after Milestone 8.
+Last updated: 2026-11-23, after Milestone 9.
 
 ## The question
 
@@ -148,6 +148,10 @@ the ranking travels and the numbers do not. Only 37 of the 961 women have diabet
    A separate rule can say "too uncertain", with a guarantee that holds on unseen women.
 10. **The ranking travels; the risk numbers don't.** On 961 women from a different survey the model ranks risk about as
     well as before, but its percentages are several times too high, and the cut-off would flag far too many.
+11. **There are no hidden groups.** The women form one continuous cloud. Clustering finds splits that barely beat data with
+    no groups in it and do not hold steady, and adding them to the model does not help. Odd records are easy to find (the
+    insulin of 846 and skinfold of 99 stand out) but removing them changes nothing. The page now warns when the numbers
+    you enter are unlike the women the model learned from.
 
 ## What it can't tell you
 
@@ -159,9 +163,9 @@ the ranking travels and the numbers do not. Only 37 of the 961 women have diabet
 
 ## What's next
 
-The project is planned as ten **milestones**. Eight are done. The next ones ask:
+The project is planned as ten **milestones**. Nine are done. The next one asks:
 
-- **Milestones 9 and 10:** are there hidden groups in the data; and production polish.
+- **Milestone 10:** could someone else rebuild, test and trust this (a model card, automatic tests, run tracking)?
 
 The full plan is in the [roadmap](MILESTONES.md).
 

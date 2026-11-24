@@ -6430,6 +6430,540 @@
    "Age": 0
   }
  },
+ "m9": {
+  "pca": {
+   "explained": [
+    0.32890608046776015,
+    0.20904393415181166,
+    0.15906804210031084,
+    0.12863106490391862,
+    0.10677400826047835,
+    0.0675768701157204
+   ],
+   "loadings": {
+    "PC1": {
+     "Pregnancies": 0.4713284386776246,
+     "Glucose": 0.4033733371404815,
+     "BloodPressure": 0.46766269567390234,
+     "BMI": 0.28216940352360564,
+     "DiabetesPedigreeFunction": 0.10351188030013943,
+     "Age": 0.5532601333954447
+    },
+    "PC2": {
+     "Pregnancies": -0.4543534712257731,
+     "Glucose": 0.3013284971568513,
+     "BloodPressure": 0.13131718176217938,
+     "BMI": 0.5921628390362115,
+     "DiabetesPedigreeFunction": 0.47252372525986974,
+     "Age": -0.3340424507325857
+    },
+    "PC3": {
+     "Pregnancies": 0.16459932326798937,
+     "Glucose": 0.09231012669754222,
+     "BloodPressure": -0.4305015975395686,
+     "BMI": -0.349205388456528,
+     "DiabetesPedigreeFunction": 0.7887845123178062,
+     "Age": 0.1868926633262222
+    }
+   }
+  },
+  "trust": {
+   "pca": 0.8272158137583893,
+   "umap": 0.9430778104026846
+  },
+  "scan": {
+   "2": {
+    "silhouette": 0.22736634400821046,
+    "null_mean": 0.1860467794624609,
+    "null_high": 0.19725412727149527,
+    "stability": 0.7532522409687487,
+    "bic": 12003.945611293488
+   },
+   "3": {
+    "silhouette": 0.20747077123844518,
+    "null_mean": 0.15710562133351225,
+    "null_high": 0.16375812419254585,
+    "stability": 0.7619375787433275,
+    "bic": 12025.6677903345
+   },
+   "4": {
+    "silhouette": 0.18982915542409684,
+    "null_mean": 0.14090245122022596,
+    "null_high": 0.14666069399662138,
+    "stability": 0.697500181658551,
+    "bic": 11950.177823679554
+   },
+   "5": {
+    "silhouette": 0.18498349764672128,
+    "null_mean": 0.13936559043272928,
+    "null_high": 0.1476752050693019,
+    "stability": 0.5791545005072057,
+    "bic": 12077.494078455447
+   },
+   "6": {
+    "silhouette": 0.18219457014545415,
+    "null_mean": 0.13557680517258933,
+    "null_high": 0.14378490935902707,
+    "stability": 0.5146369330824168,
+    "bic": 12168.306365134906
+   },
+   "7": {
+    "silhouette": 0.18115468559500572,
+    "null_mean": 0.1325861797285269,
+    "null_high": 0.13889109815834066,
+    "stability": 0.4761812055945229,
+    "bic": 12276.958821929351
+   },
+   "8": {
+    "silhouette": 0.15439937333389098,
+    "null_mean": 0.13072753173555202,
+    "null_high": 0.13540123777783158,
+    "stability": 0.48873506333359845,
+    "bic": 12429.196754030767
+   }
+  },
+  "best_k": 2,
+  "profile_k": 3,
+  "profiles": {
+   "2": [
+    {
+     "cluster": 0,
+     "women": 419,
+     "diabetes_rate": 0.17899761336515513,
+     "Pregnancies": 2.0,
+     "Glucose": 106.0,
+     "BloodPressure": 66.0,
+     "BMI": 30.0,
+     "DiabetesPedigreeFunction": 0.347,
+     "Age": 25.0
+    },
+    {
+     "cluster": 1,
+     "women": 349,
+     "diabetes_rate": 0.5530085959885387,
+     "Pregnancies": 6.0,
+     "Glucose": 136.0,
+     "BloodPressure": 78.0,
+     "BMI": 34.2,
+     "DiabetesPedigreeFunction": 0.398,
+     "Age": 41.0
+    }
+   ],
+   "3": [
+    {
+     "cluster": 1,
+     "women": 343,
+     "diabetes_rate": 0.13994169096209913,
+     "Pregnancies": 2.0,
+     "Glucose": 103.0,
+     "BloodPressure": 64.0,
+     "BMI": 28.5,
+     "DiabetesPedigreeFunction": 0.334,
+     "Age": 25.0
+    },
+    {
+     "cluster": 2,
+     "women": 234,
+     "diabetes_rate": 0.5427350427350427,
+     "Pregnancies": 8.0,
+     "Glucose": 132.0,
+     "BloodPressure": 76.0,
+     "BMI": 32.8,
+     "DiabetesPedigreeFunction": 0.379,
+     "Age": 45.0
+    },
+    {
+     "cluster": 0,
+     "women": 191,
+     "diabetes_rate": 0.4869109947643979,
+     "Pregnancies": 1.0,
+     "Glucose": 134.5,
+     "BloodPressure": 80.0,
+     "BMI": 37.75,
+     "DiabetesPedigreeFunction": 0.455,
+     "Age": 28.0
+    }
+   ]
+  },
+  "feature_test": {
+   "base_auc": 0.8532609364081061,
+   "member": {
+    "auc": 0.8515873515024458,
+    "diff": -0.001673584905660357,
+    "low": -0.0051645525521306895,
+    "high": 0.0018173827408099758,
+    "p": 0.3400778828008025,
+    "wins": 0.3
+   },
+   "distance": {
+    "auc": 0.8511403913347309,
+    "diff": -0.002120545073375246,
+    "low": -0.005712485912059281,
+    "high": 0.001471395765308789,
+    "p": 0.24119420077730602,
+    "wins": 0.3
+   },
+   "anomaly": {
+    "auc": 0.8524146750524111,
+    "diff": -0.0008462613556953058,
+    "low": -0.0020589493605038386,
+    "high": 0.00036642664911322703,
+    "p": 0.16711152118209963,
+    "wins": 0.22
+   }
+  },
+  "odd_records": [
+   {
+    "row": 537,
+    "consensus_rank": 2.0,
+    "most_unusual_value": "Age",
+    "value": 67.0,
+    "z": 2.8706164896975395,
+    "Pregnancies": 0.0,
+    "Glucose": 57.0,
+    "BloodPressure": 60.0,
+    "SkinThickness": null,
+    "Insulin": null,
+    "BMI": 21.7,
+    "DiabetesPedigreeFunction": 0.735,
+    "Age": 67.0
+   },
+   {
+    "row": 4,
+    "consensus_rank": 3.0,
+    "most_unusual_value": "DiabetesPedigreeFunction",
+    "value": 2.288,
+    "z": 5.481337032943514,
+    "Pregnancies": 0.0,
+    "Glucose": 137.0,
+    "BloodPressure": 40.0,
+    "SkinThickness": 35.0,
+    "Insulin": 168.0,
+    "BMI": 43.1,
+    "DiabetesPedigreeFunction": 2.288,
+    "Age": 33.0
+   },
+   {
+    "row": 294,
+    "consensus_rank": 4.333333333333333,
+    "most_unusual_value": "Age",
+    "value": 65.0,
+    "z": 2.7005518108617537,
+    "Pregnancies": 0.0,
+    "Glucose": 161.0,
+    "BloodPressure": 50.0,
+    "SkinThickness": null,
+    "Insulin": null,
+    "BMI": 21.9,
+    "DiabetesPedigreeFunction": 0.254,
+    "Age": 65.0
+   },
+   {
+    "row": 445,
+    "consensus_rank": 6.333333333333333,
+    "most_unusual_value": "DiabetesPedigreeFunction",
+    "value": 2.42,
+    "z": 5.879733072364472,
+    "Pregnancies": 0.0,
+    "Glucose": 180.0,
+    "BloodPressure": 78.0,
+    "SkinThickness": 63.0,
+    "Insulin": 14.0,
+    "BMI": 59.4,
+    "DiabetesPedigreeFunction": 2.42,
+    "Age": 25.0
+   },
+   {
+    "row": 125,
+    "consensus_rank": 9.333333333333334,
+    "most_unusual_value": "BloodPressure",
+    "value": 30.0,
+    "z": -3.4247005614915618,
+    "Pregnancies": 1.0,
+    "Glucose": 88.0,
+    "BloodPressure": 30.0,
+    "SkinThickness": 42.0,
+    "Insulin": 99.0,
+    "BMI": 55.0,
+    "DiabetesPedigreeFunction": 0.496,
+    "Age": 26.0
+   },
+   {
+    "row": 487,
+    "consensus_rank": 12.333333333333334,
+    "most_unusual_value": "Age",
+    "value": 58.0,
+    "z": 2.1053254349365034,
+    "Pregnancies": 0.0,
+    "Glucose": 173.0,
+    "BloodPressure": 78.0,
+    "SkinThickness": 32.0,
+    "Insulin": 265.0,
+    "BMI": 46.5,
+    "DiabetesPedigreeFunction": 1.159,
+    "Age": 58.0
+   },
+   {
+    "row": 593,
+    "consensus_rank": 12.666666666666666,
+    "most_unusual_value": "DiabetesPedigreeFunction",
+    "value": 1.699,
+    "z": 3.70364561461818,
+    "Pregnancies": 2.0,
+    "Glucose": 82.0,
+    "BloodPressure": 52.0,
+    "SkinThickness": 22.0,
+    "Insulin": 115.0,
+    "BMI": 28.5,
+    "DiabetesPedigreeFunction": 1.699,
+    "Age": 25.0
+   },
+   {
+    "row": 362,
+    "consensus_rank": 16.333333333333332,
+    "most_unusual_value": "BloodPressure",
+    "value": 108.0,
+    "z": 2.874685916735074,
+    "Pregnancies": 5.0,
+    "Glucose": 103.0,
+    "BloodPressure": 108.0,
+    "SkinThickness": 37.0,
+    "Insulin": null,
+    "BMI": 39.2,
+    "DiabetesPedigreeFunction": 0.305,
+    "Age": 65.0
+   },
+   {
+    "row": 45,
+    "consensus_rank": 18.333333333333332,
+    "most_unusual_value": "DiabetesPedigreeFunction",
+    "value": 1.893,
+    "z": 4.289167066494437,
+    "Pregnancies": 0.0,
+    "Glucose": 180.0,
+    "BloodPressure": 66.0,
+    "SkinThickness": 39.0,
+    "Insulin": null,
+    "BMI": 42.0,
+    "DiabetesPedigreeFunction": 1.893,
+    "Age": 25.0
+   },
+   {
+    "row": 464,
+    "consensus_rank": 18.666666666666668,
+    "most_unusual_value": "BloodPressure",
+    "value": 98.0,
+    "z": 2.0670722656803773,
+    "Pregnancies": 10.0,
+    "Glucose": 115.0,
+    "BloodPressure": 98.0,
+    "SkinThickness": null,
+    "Insulin": null,
+    "BMI": 24.0,
+    "DiabetesPedigreeFunction": 1.022,
+    "Age": 34.0
+   },
+   {
+    "row": 672,
+    "consensus_rank": 18.666666666666668,
+    "most_unusual_value": "BloodPressure",
+    "value": 106.0,
+    "z": 2.713163186524135,
+    "Pregnancies": 10.0,
+    "Glucose": 68.0,
+    "BloodPressure": 106.0,
+    "SkinThickness": 23.0,
+    "Insulin": 49.0,
+    "BMI": 35.5,
+    "DiabetesPedigreeFunction": 0.285,
+    "Age": 47.0
+   },
+   {
+    "row": 621,
+    "consensus_rank": 21.666666666666668,
+    "most_unusual_value": "DiabetesPedigreeFunction",
+    "value": 1.698,
+    "z": 3.700627462804385,
+    "Pregnancies": 2.0,
+    "Glucose": 92.0,
+    "BloodPressure": 76.0,
+    "SkinThickness": 20.0,
+    "Insulin": null,
+    "BMI": 24.2,
+    "DiabetesPedigreeFunction": 1.698,
+    "Age": 28.0
+   },
+   {
+    "row": 177,
+    "consensus_rank": 22.333333333333332,
+    "most_unusual_value": "BMI",
+    "value": 67.1,
+    "z": 5.002540750429556,
+    "Pregnancies": 0.0,
+    "Glucose": 129.0,
+    "BloodPressure": 110.0,
+    "SkinThickness": 46.0,
+    "Insulin": 130.0,
+    "BMI": 67.1,
+    "DiabetesPedigreeFunction": 0.319,
+    "Age": 26.0
+   },
+   {
+    "row": 453,
+    "consensus_rank": 25.333333333333332,
+    "most_unusual_value": "Age",
+    "value": 72.0,
+    "z": 3.2957781867870044,
+    "Pregnancies": 2.0,
+    "Glucose": 119.0,
+    "BloodPressure": null,
+    "SkinThickness": null,
+    "Insulin": null,
+    "BMI": 19.6,
+    "DiabetesPedigreeFunction": 0.832,
+    "Age": 72.0
+   },
+   {
+    "row": 596,
+    "consensus_rank": 26.0,
+    "most_unusual_value": "BMI",
+    "value": 45.3,
+    "z": 1.854521005915333,
+    "Pregnancies": 0.0,
+    "Glucose": 67.0,
+    "BloodPressure": 76.0,
+    "SkinThickness": null,
+    "Insulin": null,
+    "BMI": 45.3,
+    "DiabetesPedigreeFunction": 0.194,
+    "Age": 46.0
+   }
+  ],
+  "rules": {
+   "insulin_over_600": 3,
+   "skin_over_60": 2,
+   "bmi_over_60": 1,
+   "pregnancies_over_14": 2,
+   "bp_under_40": 4,
+   "glucose_under_50": 1
+  },
+  "error_check": {
+   "isolation": {
+    "n_odd": 39,
+    "rate_odd": 0.48717948717948717,
+    "rate_rest": 0.34156378600823045,
+    "mean_error_odd": 0.3404766115139827,
+    "mean_error_rest": 0.2897720807804122,
+    "auc_odd": 0.736842105263158,
+    "auc_rest": 0.8574631860776438,
+    "spearman_error_vs_oddness": 0.006982364836569615
+   },
+   "lof": {
+    "n_odd": 39,
+    "rate_odd": 0.38461538461538464,
+    "rate_rest": 0.34705075445816186,
+    "mean_error_odd": 0.2809535939366966,
+    "mean_error_rest": 0.29295643974545227,
+    "auc_odd": 0.8583333333333334,
+    "auc_rest": 0.8536469923937955,
+    "spearman_error_vs_oddness": 0.05091474476241178
+   },
+   "mahalanobis": {
+    "n_odd": 39,
+    "rate_odd": 0.41025641025641024,
+    "rate_rest": 0.345679012345679,
+    "mean_error_odd": 0.34581994477368716,
+    "mean_error_rest": 0.289486223445531,
+    "auc_odd": 0.7364130434782609,
+    "auc_rest": 0.8596469335463045,
+    "spearman_error_vs_oddness": -0.007739715982591388
+   }
+  },
+  "agreement": {
+   "isolation_lof": 0.8093088148902298,
+   "isolation_mahalanobis": 0.9509499565971486,
+   "lof_mahalanobis": 0.8072833926449121
+  },
+  "eight_inputs": {
+   "insulin_846": {
+    "row": 13,
+    "rank_of_768": 4.0
+   },
+   "skinfold_99": {
+    "row": 579,
+    "rank_of_768": 3.0
+   },
+   "bmi_67": {
+    "row": 177,
+    "rank_of_768": 8.0
+   },
+   "pregnancies_17": {
+    "row": 159,
+    "rank_of_768": 26.0
+   },
+   "bp_24": {
+    "row": 597,
+    "rank_of_768": 29.0
+   }
+  },
+  "six_inputs": {
+   "insulin_846": {
+    "row": 13,
+    "rank_of_768": 23.5
+   },
+   "skinfold_99": {
+    "row": 579,
+    "rank_of_768": 45.5
+   },
+   "bmi_67": {
+    "row": 177,
+    "rank_of_768": 13.0
+   },
+   "pregnancies_17": {
+    "row": 159,
+    "rank_of_768": 82.5
+   },
+   "bp_24": {
+    "row": 597,
+    "rank_of_768": 165.0
+   }
+  },
+  "reach": {
+   "q95": 3.8641717641048787,
+   "q99": 4.53477221568186,
+   "median_pima": 2.1444804176982712,
+   "median_nhanes": 2.7997149680763425,
+   "nhanes_over_q95": 0.26222684703433924,
+   "nhanes_over_q99": 0.10613943808532779,
+   "flagged": {
+    "n": 252,
+    "positives": 20,
+    "mean_predicted": 0.2503944188575737,
+    "observed": 0.07936507936507936,
+    "auc": 0.8525862068965517
+   },
+   "typical": {
+    "n": 709,
+    "positives": 17,
+    "mean_predicted": 0.25322847476309734,
+    "observed": 0.023977433004231313,
+    "auc": 0.9115096905814349
+   },
+   "width_vs_distance": 0.3667360006730832,
+   "pima_over_q95_width": 0.28231556594537577,
+   "pima_rest_width": 0.18802740751030517
+  },
+  "n_removed": 15,
+  "trim_test": {
+   "auc_all": 0.8532609364081061,
+   "auc_trimmed": 0.8531227812718377,
+   "diff": -0.00013815513626833643,
+   "low": -0.0025687885885266703,
+   "high": 0.0022924783159899973,
+   "p": 0.9095281307710926,
+   "wins": 0.44
+  }
+ },
  "current": {
   "features": [
    "Pregnancies",

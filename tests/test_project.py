@@ -3,6 +3,7 @@ import json
 import math
 
 import numpy as np
+import pandas as pd
 from sklearn.metrics import roc_auc_score
 
 from src.data import FEATURES, ROOT, ZERO_MEANS_MISSING, load_data, load_raw
@@ -193,3 +194,23 @@ def test_nhanes_table_and_frozen_model():
     m8 = json.loads((ROOT / "reports" / "metrics.json").read_text())["m8"]
     assert abs(m8["auc"]["value"] - roc_auc_score(nh["Outcome"], p)) < 1e-9
     assert m8["auc"]["low"] > 0.75 and m8["calibration"]["mean_predicted"] > 5 * m8["calibration"]["observed"]
+
+
+def test_m9_structure_results_and_page_distance():
+    from src import structure
+    m9 = json.loads((ROOT / "reports" / "metrics.json").read_text())["m9"]
+    assert all(v["stability"] < 0.8 for v in m9["scan"].values())            # no group holds steady
+    for kind in ["member", "distance", "anomaly"]:
+        assert m9["feature_test"][kind]["p"] > 0.05 and m9["feature_test"][kind]["diff"] < 0.002   # no real improvement
+    assert m9["trim_test"]["low"] < 0 < m9["trim_test"]["high"]
+    assert m9["eight_inputs"]["insulin_846"]["rank_of_768"] <= 10 and m9["eight_inputs"]["skinfold_99"]["rank_of_768"] <= 10
+    # the page's distance reference must agree with the Python one, and about 5% of Pima women lie beyond its 95th percentile
+    X, _ = load_data()
+    ref = structure.reference(X)
+    ex = json.loads((ROOT / "reports" / "reach.json").read_text())
+    assert abs(ex["q95"] - ref["q95"]) < 1e-9
+    d = structure.distance(ex, X)
+    assert abs((d > ex["q95"]).mean() - 0.05) < 0.01
+    # a woman with very unusual numbers is far beyond the line; a typical woman is not
+    odd = pd.DataFrame([{"Pregnancies": 0, "Glucose": 57, "BloodPressure": 30, "BMI": 55, "DiabetesPedigreeFunction": 2.3, "Age": 67}])
+    assert structure.distance(ex, odd)[0] > ex["q99"]

@@ -34,6 +34,8 @@ kept separate (nested cross-validation).
 | Who does it serve less well? | Women 45 and over (weaker separation). Women under 30 are fixed by the cost-based cut-off | Likely |
 | Why did it give her this number? | Glucose, then BMI and age; the same order in a boosted-tree model; exact explanation | Firm |
 | Can a flagged woman be cleared by a small change? | Rarely: about 3 in 10 at the page's cut-off | Firm |
+| How sure is the model about one woman? | Typical 95% range 19 points wide; it holds the true risk about 91% of the time | Firm (simulation) |
+| Can it say "too uncertain"? | Yes. Guarantee holds on unseen women; 33% uncertain at 90%, 7% at 80% | Firm |
 | Does rebalancing help? | No: same ranking, distorted risks | Firm |
 | Does it beat a simple glucose rule? | Yes: 21 more cases found for about the same number of false alarms | Firm |
 | Does it work outside this data? | Unknown | Open (M8) |
@@ -274,6 +276,35 @@ change anyone's real risk.
 **How solid.** Firm for the importance ranking and the SHAP check. Likely for the BMI curve's benefit (p = 0.15).
 
 **Evidence.** Notebook 08, and the "What would change this?" box on the project page.
+
+## 12. How sure is the model about one woman?
+
+**In plain terms.** An estimate is not exact. Refitting the model on resamples shows a typical range of 19 points around
+each risk, and a separate rule can decline to call a woman when it can't be sure, at a cost.
+
+**Answer.**
+
+- **Size of the range.** Median 95% range 19 points (10% of women under 3.6, 10% over 34.3). By risk: under 10%, 6 points;
+  10% to 30%, 17; 30% to 60%, 27; 60% and over, 25. The widest ranges belong to older women with high glucose (median
+  age 60, glucose 152.5).
+- **Does the cut-off matter?** The cut-off lies inside the range for 24.7% of women at 0.33, 21.9% at 0.17 and 22.4% at 0.09.
+- **Is the spread believable?** It agrees with the spread across the 50 cross-validation fits (median ratio 1.08, correlation
+  0.96).
+- **Is the 95% honest?** In a simulation of 60 studies the range held the true risk 91.4% of the time (78.9% to 99.1%), so it
+  is a little too narrow. The estimates are not biased (average error -0.002).
+- **The conformal rule.** Checked on 300 random splits: at the 90% level it covered 89.9% of women without diabetes and
+  90.8% of women with it; at the 80% level, 80.2% and 79.3%. The worst single splits fell well below (65% for women with
+  diabetes at 80%).
+- **The price.** At 90%: 41.6% confident no, 33.3% too uncertain, 25.1% confident yes; a confident "no" is wrong for 7.4%, a
+  confident "yes" for 25.3%. At 80%: 54.9%, 6.9%, 37.7%; wrong for 12.6% and 32.9%. The page's cut-offs for the 90% level
+  are 0.22 and 0.56, and for 80% they are 0.33 and 0.39.
+
+The range and the call describe the model's estimate. Neither says what will happen to one woman.
+
+**How solid.** Firm for the coverage checks. The conformal guarantee is about averages over many groups of women, not any one
+group.
+
+**Evidence.** Notebook 09, and the range on the risk meter and the "How sure can the model be?" box on the project page.
 
 ## What didn't work
 

@@ -192,6 +192,22 @@ would vary. *Here: 300 refits to test whether BMI's flat stretch is real.*
 a woman's glucose would need to be to fall below the cut-off. It explains the model and does not say that making the
 change would lower her real risk.
 
+## Uncertainty
+
+**Bootstrap range (95% range).** The middle 95% of a woman's risks across 200 refits of the model, each on a resample of the
+768 women. It shows how far her estimate could move had a different group been studied. It describes the model's
+estimate, not whether she will get diabetes. Here it holds the true risk about 91% of the time in a simulation.
+
+**Coverage.** The share of the time a range or a rule contains the truth. A range labelled 95% should have coverage of 95%.
+
+**Conformal prediction.** A way of turning a risk into a call (confident no, confident yes, or too uncertain) with a
+guarantee about how often the call is right, which holds on women the rule has never seen.
+
+**Calibration set.** Women set aside, with known outcomes, to measure how far off the model's risks are, so that the
+conformal rule's guarantee holds on new women.
+
+**Too uncertain to call.** The outcome when both "no" and "yes" fit at the chosen level. It is the price of the guarantee.
+
 ## Missing data
 
 **Missing value.** A measurement that was never taken. *In this data, a missing value is recorded as zero, which is

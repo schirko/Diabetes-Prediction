@@ -3,7 +3,7 @@
 This page explains the whole project without statistics. Words in **bold** are explained in the
 [glossary](GLOSSARY.md). For the full list of conclusions, see the [findings](FINDINGS.md).
 
-Last updated: 2026-11-23, after Milestone 6.
+Last updated: 2026-11-23, after Milestone 7.
 
 ## The question
 
@@ -103,6 +103,18 @@ below the cut-off? For most flagged women the answer is "more than is realistic"
 glucose 20 lower or BMI 10% lower, because the typical flagged woman is far above the cut-off (median risk 49%, against
 17%). This explains the model; it is not health advice.
 
+### How sure is the model about one woman?
+
+An estimate of 36% looks exact but comes from 768 women. Refitting the model 200 times on resamples of them shows how far
+her risk could move: typically about 19 percentage points wide, narrow for low risks and widest in the middle of the scale.
+For about one woman in four to five the cut-off lies inside that range. In a test where the true risk was known, the
+range held it 91% of the time, a little short of the 95% on its label, so the page calls it "about 90%".
+
+The page also says "no", "yes" or "too uncertain" for each woman, using a rule that is guaranteed to be right about 90% of
+the time for women with and without diabetes separately. The price is that a third of women (33%) are too uncertain to
+call at that level, and a confident "yes" is still wrong for 25 in 100 women, because the guarantee is about each group,
+not each call.
+
 ## Main conclusions
 
 1. **A fair test changes the story.** The honest accuracy of the original method is 77%, not 81%, and accuracy was
@@ -124,6 +136,8 @@ glucose 20 lower or BMI 10% lower, because the typical flagged woman is far abov
    more cases for the same false alarms, and it makes the risks too high. Moving the cut-off does the same job.
 8. **The model can be explained exactly.** Glucose, BMI and age are the only inputs it clearly relies on. SHAP, a standard
    explanation tool, matches the model's own arithmetic to within 0.002.
+9. **Each estimate comes with a range.** It is about 19 points wide and a little too narrow (91% against a 95% label).
+   A separate rule can say "too uncertain", with a guarantee that holds on unseen women.
 
 ## What it can't tell you
 
@@ -134,10 +148,10 @@ glucose 20 lower or BMI 10% lower, because the typical flagged woman is far abov
 
 ## What's next
 
-The project is planned as ten **milestones**. Six are done. The next ones ask:
+The project is planned as ten **milestones**. Seven are done. The next ones ask:
 
-- **Milestones 7 to 10:** how sure is each estimate; does it work on other populations; are there hidden groups in
-  the data; and production polish.
+- **Milestones 8 to 10:** does it work on other populations; are there hidden groups in the data; and production
+  polish.
 
 The full plan is in the [roadmap](MILESTONES.md).
 

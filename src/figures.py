@@ -495,6 +495,100 @@ def m6_counterfactual():
     return fig
 
 
+def m7_ranges():
+    """Milestone 7: the 95% bootstrap range around every woman's estimated risk, women sorted by risk."""
+    from . import uncertainty
+    X, y = load_data()
+    from .modeling import current_features
+    Xc = X[current_features(list(X.columns))]
+    t = uncertainty.tables_from_json(json.loads((REPORTS / "bootstrap.json").read_text()))
+    filled = Xc.fillna(Xc.median())[t["features"]].to_numpy()
+    p = uncertainty.risks_from_tables(t, filled)
+    lo, hi = np.percentile(p, 2.5, axis=1), np.percentile(p, 97.5, axis=1)
+    point = uncertainty.fit_current(Xc, y).predict_proba(Xc)[:, 1]
+    order = np.argsort(point)
+    xs = np.arange(len(order))
+    cut = _metrics()["m5"]["published"]["cutoff"]
+    fig, ax = plt.subplots(figsize=(8.4, 4.0))
+    ax.fill_between(xs, lo[order] * 100, hi[order] * 100, color=GREEN, alpha=0.25, linewidth=0, label="95% range")
+    ax.plot(xs, point[order] * 100, color=GREEN, linewidth=2, label="Estimated risk")
+    ax.axhline(cut * 100, color=INK, linewidth=1, linestyle="--")
+    ax.text(len(order) * 0.02, cut * 100 + 2.5, f"cut-off {cut:.2f}", color=INK, fontsize=9.5)
+    ax.set_xlabel("768 women, sorted from lowest to highest estimated risk")
+    ax.set_ylabel("Risk (%)")
+    ax.set_xlim(0, len(order))
+    ax.set_ylim(0, 100)
+    ax.set_title("Ranges are narrow for low risks and widest from about 30% up")
+    ax.legend(loc="upper left", frameon=False, fontsize=9.5, bbox_to_anchor=(0.0, 0.92))
+    return fig
+
+
+def m7_zones():
+    """Milestone 7: where the conformal rule says 'too uncertain', drawn over the women's out-of-fold risks."""
+    m7 = _metrics()["m7"]
+    oof = pd.read_csv(REPORTS / "oof.csv")
+    bins = np.linspace(0, 1, 41)
+    fig, ax = plt.subplots(figsize=(8.4, 3.9))
+    ax.hist(oof.loc[oof.outcome == 0, "p_current"], bins=bins, color=GREEN, alpha=0.75, label="Women without diabetes", edgecolor="white")
+    ax.hist(oof.loc[oof.outcome == 1, "p_current"], bins=bins, color=WARM, alpha=0.75, label="Women with diabetes", edgecolor="white")
+    top = ax.get_ylim()[1]
+    th = m7["page_thresholds"]
+    ax.axvspan(th["0.1"]["low"], th["0.1"]["high"], color=INK, alpha=0.10, linewidth=0)
+    ax.axvspan(th["0.2"]["low"], th["0.2"]["high"], color=INK, alpha=0.22, linewidth=0)
+    ax.text(0.57, top * 0.98, "lighter band: too uncertain at the 90% level\ndarker band: too uncertain at the 80% level", ha="left", va="top",
+            fontsize=9.5, color=INK)
+    ax.set_xlabel("Estimated risk")
+    ax.set_ylabel("Women")
+    ax.set_xlim(0, 1)
+    ax.set_title("Women in the grey band get no confident call")
+    ax.legend(loc="upper right", frameon=False, fontsize=9.5, bbox_to_anchor=(1.0, 0.80))
+    ax.grid(axis="x", visible=False)
+    return fig
+
+
+def m7_coverage():
+    """Milestone 7: does the conformal guarantee hold on unseen women, and what share of women get a call?"""
+    c = _metrics()["m7"]["conformal"]
+    alphas = list(c)
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.4, 3.8), gridspec_kw={"width_ratios": [1, 1]})
+    w = 0.34
+    for j, (key, label, color) in enumerate([("cov0", "Women without diabetes", GREEN), ("cov1", "Women with diabetes", WARM)]):
+        xs = np.arange(len(alphas)) + (j - 0.5) * w
+        vals = [c[a][key] * 100 for a in alphas]
+        a1.bar(xs, vals, width=w * 0.92, color=color, label=label)
+        for x, v in zip(xs, vals):
+            a1.text(x, v - 7, f"{v:.0f}%", ha="center", fontsize=10, color="white")
+    for i, a in enumerate(alphas):
+        a1.hlines(c[a]["target"] * 100, i - 0.45, i + 0.45, color=INK, linewidth=1.6, linestyle="--")
+    a1.set_xticks(np.arange(len(alphas)), [f"{round((1 - float(a)) * 100)}% level\n(target {c[a]['target'] * 100:.0f}%)" for a in alphas])
+    a1.set_ylim(0, 100)
+    a1.set_ylabel("Women found in the rule's set (%)")
+    a1.set_title("The guarantee holds on average")
+    a1.legend(frameon=False, fontsize=9, loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.38))
+    a1.grid(axis="x", visible=False)
+    labels = [f"{round((1 - float(a)) * 100)}% level" for a in alphas]
+    no = np.array([c[a]["no"] for a in alphas]) * 100
+    unc = np.array([c[a]["uncertain"] for a in alphas]) * 100
+    yes = np.array([c[a]["yes"] for a in alphas]) * 100
+    ys = np.arange(len(alphas))
+    a2.barh(ys, no, color=GREEN, height=0.5, label="Confident no")
+    a2.barh(ys, unc, left=no, color="#B9B5A8", height=0.5, label="Too uncertain")
+    a2.barh(ys, yes, left=no + unc, color=WARM, height=0.5, label="Confident yes")
+    for y_, n_, u_, s_ in zip(ys, no, unc, yes):
+        a2.text(n_ / 2, y_, f"{n_:.0f}%", ha="center", va="center", color="white", fontsize=10)
+        if u_ > 5:
+            a2.text(n_ + u_ / 2, y_, f"{u_:.0f}%", ha="center", va="center", color=INK, fontsize=10)
+        a2.text(n_ + u_ + s_ / 2, y_, f"{s_:.0f}%", ha="center", va="center", color="white", fontsize=10)
+    a2.set_yticks(ys, labels)
+    a2.set_xlim(0, 100)
+    a2.set_xlabel("Share of women (%)")
+    a2.set_title("What the rule says about each woman")
+    a2.legend(frameon=False, fontsize=9, loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.38))
+    a2.grid(axis="y", visible=False)
+    fig.tight_layout()
+    return fig
+
+
 ALL = {
     "missing": missing_values,
     "lucky_split": lucky_split,
@@ -510,6 +604,9 @@ ALL = {
     "m6_importance": m6_importance,
     "m6_curves": m6_curves,
     "m6_counterfactual": m6_counterfactual,
+    "m7_ranges": m7_ranges,
+    "m7_zones": m7_zones,
+    "m7_coverage": m7_coverage,
     "strategies": strategy_comparison,
     "recovery": recovery,
     "spread": imputation_spread,

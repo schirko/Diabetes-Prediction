@@ -282,6 +282,15 @@ def milestone6(Xc, y) -> dict:
     return explain.run(Xc, y, cutoffs, decision.DEFAULT_RATIO)
 
 
+def milestone7(Xc, y, p, rerun=False) -> dict:
+    """Uncertainty: bootstrap ranges and conformal calls (notebook 09). Also writes reports/bootstrap.json for the page."""
+    from . import decision, uncertainty
+    cutoffs = {r: decision.cutoff_for_ratio(r) for r in decision.COST_RATIOS}
+    res, tables = uncertainty.run(Xc, y, np.asarray(p), cutoffs, rerun=rerun)
+    (REPORTS / "bootstrap.json").write_text(json.dumps(uncertainty.export_for_page(tables), separators=(",", ":")))
+    return res
+
+
 def main():
     warnings.filterwarnings("ignore")
     REPORTS.mkdir(exist_ok=True)
@@ -332,6 +341,8 @@ def main():
         "m5": milestone5(Xc, y, p_current, rule, current["threshold_screening"]["threshold"]),
         # --- Milestone 6: explainability (notebook 08)
         "m6": milestone6(Xc, y),
+        # --- Milestone 7: uncertainty (notebook 09)
+        "m7": milestone7(Xc, y, p_current),
         # --- The current model: what the web page runs and reports
         "current": current,
     }

@@ -12,8 +12,8 @@ Item numbers (E08, B10) refer to [ENHANCEMENTS_AND_BUGS.md](ENHANCEMENTS_AND_BUG
 | M4 | Model zoo, tuning and nested cross-validation | Done 2026-11-17 | Given a fair, tuned contest, does any model beat logistic regression? | 06 |
 | M5 | Class imbalance and cost-based decisions | Done 2026-11-23 | Do resampling tricks help, or is moving the cut-off enough? | 07 |
 | M6 | Explainability | Done 2026-11-23 | Why did the model give this woman this number? | 08 |
-| M7 | Uncertainty | Next | How sure is the model about one person's estimate? | 09 |
-| M8 | External validation | Planned | Does it work on people who are not in this dataset? | 10 |
+| M7 | Uncertainty | Done 2026-11-23 | How sure is the model about one person's estimate? | 09 |
+| M8 | External validation | Next | Does it work on people who are not in this dataset? | 10 |
 | M9 | Unsupervised structure | Planned | Are there natural groups or odd records the labels don't show? | 11 |
 | M10 | Production polish | Planned | Could someone else rebuild, test and trust this? | none |
 | M11 | Presentation | Planned, after M10 | Can the whole project be told in 12 slides to a non-analyst? | none |
@@ -102,7 +102,13 @@ What came out of it:
 - E19: a bootstrap interval around each individual estimate.
 - E20: conformal prediction, with a "too uncertain to call" outcome.
 
-**Exit check:** the app shows a range, and the stated coverage is verified on held-out data.
+**Exit check, met:** the app shows a range, and the stated coverage is verified (the range in a simulation, the conformal rule on held-out women).
+
+What came out of it:
+- The typical 95% range is 19 percentage points wide: 6 points under 10% risk, 27 points for risks of 30% to 60%. About 22% to 25% of women have the cut-off inside their range.
+- In a simulation where the true risk is known, the 95% range holds the truth 91% of the time (79% to 99% across studies), so the page calls it "about 90%".
+- The conformal rule keeps its guarantee on unseen women (300 splits): 89.9% and 90.8% at the 90% level, 80.2% and 79.3% at the 80% level. The price is the "too uncertain" group: 33% of women at 90%, 7% at 80%.
+- A confident "yes" is wrong more often than a confident "no" (25% against 7% at 90%), because the guarantee is about each real group, not each call.
 
 ## M8. External validation
 

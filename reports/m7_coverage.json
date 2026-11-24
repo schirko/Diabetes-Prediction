@@ -1,0 +1,9 @@
+{
+ "runs": 60,
+ "boot_per_run": 100,
+ "coverage_mean": 0.9144965277777779,
+ "coverage_low": 0.78916015625,
+ "coverage_high": 0.9910807291666666,
+ "median_width": 0.1827759759856797,
+ "mean_bias": -0.001670863862153117
+}

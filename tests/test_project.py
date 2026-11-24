@@ -6,6 +6,7 @@ import numpy as np
 
 from src.data import FEATURES, ROOT, ZERO_MEANS_MISSING, load_data, load_raw
 from src.evaluate import confusion_at, export_model, pick_threshold
+from src import uncertainty
 from src.modeling import LEFT_OUT, current_features, logistic
 
 
@@ -152,3 +153,29 @@ def test_shap_matches_the_exact_contributions():
     m6 = json.loads((ROOT / "reports" / "metrics.json").read_text())["m6"]
     assert m6["shap"]["max_abs_difference"] < 0.01
     assert m6["boosted"]["spearman"] > 0.8
+
+
+def test_conformal_thresholds_on_a_toy_example():
+    p = np.array([0.05, 0.10, 0.20, 0.30, 0.40, 0.45, 0.60, 0.70, 0.80, 0.90])
+    y = np.array([0, 0, 0, 1, 0, 0, 1, 1, 1, 1])
+    th = uncertainty.class_thresholds(p, y, 0.2)
+    assert abs(th["low"] - 0.30) < 1e-9 and abs(th["high"] - 0.45) < 1e-9
+    assert list(uncertainty.conformal_calls([0.10, 0.35, 0.50], th)) == [0, 2, 1]
+
+
+def test_page_ranges_come_from_the_exported_tables():
+    t = uncertainty.tables_from_json(json.loads((ROOT / "reports" / "bootstrap.json").read_text()))
+    X, y = load_data()
+    Xc = X[current_features(FEATURES)]
+    rows = Xc.fillna(Xc.median())[t["features"]].to_numpy()[:50]
+    p = uncertainty.risks_from_tables(t, rows)
+    assert p.shape[1] == 200 and ((p > 0) & (p < 1)).all()
+    lo, hi = np.percentile(p, 2.5, axis=1), np.percentile(p, 97.5, axis=1)
+    assert (lo <= hi).all()
+
+
+def test_m7_coverage_is_near_its_targets():
+    m7 = json.loads((ROOT / "reports" / "metrics.json").read_text())["m7"]
+    for a, c in m7["conformal"].items():
+        assert abs(c["cov0"] - c["target"]) < 0.03 and abs(c["cov1"] - c["target"]) < 0.03
+    assert m7["coverage"]["coverage_mean"] > 0.85         # the range under-covers its 95% label, but not badly

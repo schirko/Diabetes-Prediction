@@ -121,6 +121,7 @@ footer { margin: 64px 0 40px; padding-top: 20px; border-top: 1px solid var(--lin
 .plain { color: var(--muted); font-size: 15px; margin: 8px 0 14px; }
 .meter { position: relative; height: 14px; border-radius: 7px; background: var(--track); margin: 26px 0 8px; }
 .meter .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 7px; background: var(--neutral); }
+.meter .range { position: absolute; top: 17px; height: 7px; border-left: 2px solid var(--ink); border-right: 2px solid var(--ink); background: linear-gradient(var(--ink), var(--ink)) center / 100% 2px no-repeat; opacity: .55; }
 .meter .cut { position: absolute; top: -7px; bottom: -7px; width: 2px; background: var(--ink); }
 .meter .cut span { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); font-size: 11.5px; color: var(--muted); white-space: nowrap; padding-bottom: 1px; }
 .scale { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
@@ -212,9 +213,11 @@ BMI and age are allowed to bend, so risk can level off or fall where the data sa
     <div aria-live="polite">
       <div class="risk"><span id="risk">0</span><small>%</small></div>
       <p class="plain" id="plain"></p>
-      <div class="meter" aria-hidden="true"><div class="fill" id="fill"></div><div class="cut" id="cutmark"><span id="cutlab"></span></div></div>
+      <div class="meter" aria-hidden="true"><div class="fill" id="fill"></div><div class="range" id="rangeband"></div><div class="cut" id="cutmark"><span id="cutlab"></span></div></div>
       <div class="scale" aria-hidden="true"><span>0%</span><span>50%</span><span>100%</span></div>
+      <p class="note" id="rangetext" style="font-size:13.5px;margin:18px 0 0"></p>
       <div class="verdict" id="verdict"></div>
+      <div class="verdict" id="sure" style="display:block"></div>
     </div>
     <div class="contrib">
       <h3>What moves this estimate</h3>
@@ -441,6 +444,44 @@ is, see the <a href="docs/FINDINGS.html">findings</a>. Unfamiliar word? Try the 
   </figure>
 </div>
 
+<div class="story">
+  <h3>11. How sure is the model about one woman?</h3>
+  <p>A risk of 40% looks exact, but it is an estimate made from 768 women. To see how much it could move, the model was refitted 200
+  times on resamples of those women, and each woman's risk read from every refit. The middle 95% of those readings is her range. It
+  is {{iv_median}} points wide for the typical woman: narrow for low risks ({{iv_low}} points under 10%) and widest in the middle of the
+  scale ({{iv_mid}} points for risks of 30% to 60%). At the page's cut-off, {{iv_cut_inside}} of women have the cut-off inside their
+  range, so whether they are flagged could go either way depending on which 768 women had been studied.</p>
+  <figure>
+    <img src="images/m7_ranges.png" alt="All 768 women sorted by estimated risk, with a green line for the estimate and a shaded band for the 95% range. The band is thin near zero and widens above about 30%, up to roughly 25 points either side of the line.">
+    <figcaption><span class="howto"><b>How to read it:</b> each position along the bottom is one woman, ordered from the lowest
+    estimated risk to the highest. The line is her estimate; the shaded band is the range it could move over. The dashed line is
+    the page's cut-off.</span></figcaption>
+  </figure>
+  <p>Is that range honest? Two checks. In a simulation, where the true risks are known, the range contained the true risk
+  {{cov_boot}} of the time on average ({{cov_boot_low}} to {{cov_boot_high}} across simulated studies): a little short of the 95% on its
+  label, so read it as "about 90%". And its size agrees with how much estimates actually vary between different training sets of the real
+  data (ratio {{spread_ratio}}, correlation {{spread_corr}}).</p>
+  <p>A range around a risk says how much to trust the <i>estimate</i>. It can't say whether a woman will <i>develop diabetes</i>,
+  because she either will or won't. For that there is a second tool, conformal prediction. It turns the risk into a call of
+  "no", "yes" or "too uncertain", with a guarantee: if you ask for the 90% level, at least about 90% of women without diabetes
+  are called "no" or "uncertain" (never wrongly "yes"), and at least about 90% of women with diabetes are called "yes" or "uncertain". Checked on women the rule had never
+  seen (300 random splits), it held: {{cf90_cov0}} and {{cf90_cov1}} at the 90% level, {{cf80_cov0}} and {{cf80_cov1}} at the 80% level.</p>
+  <figure>
+    <img src="images/m7_coverage.png" alt="Left: bars of the share of women in each true group found in the rule's set at the 90% and 80% levels, all within a point of the dashed target lines. Right: stacked bars of the share of women called confident no, too uncertain, or confident yes: 42, 33 and 25 percent at the 90% level; 55, 7 and 38 percent at the 80% level.">
+    <figcaption><span class="howto"><b>How to read it:</b> on the left, each bar is the share of one group (healthy women, women
+    with diabetes) that the rule handled correctly, against the dashed target. On the right, how every woman is called.</span></figcaption>
+  </figure>
+  <p>The price of the guarantee is the uncertain group: {{cf90_unc}} of women at the 90% level, {{cf80_unc}} at 80%. At the 90% level the
+  rule says "no" for {{cf90_no}} of women and about {{cf90_nowrong}} in 100 of them have diabetes anyway; it says "yes" for {{cf90_yes}} and
+  about {{cf90_yeswrong}} in 100 of them are healthy. The guarantee is about each real group, not about each call, which is why the
+  "yes" calls are less reliable than the "no" calls: the women with the highest risks still include many without diabetes.</p>
+  <figure>
+    <img src="images/m7_zones.png" alt="Histogram of estimated risk for women without diabetes (green, piled up below 20%) and with diabetes (orange, spread across the scale), with a light band from 22% to 56% and a darker band from 33% to 39% marking where the rule says too uncertain.">
+    <figcaption><span class="howto"><b>How to read it:</b> the two colours are women without and with diabetes at each estimated
+    risk. Where they overlap, no rule can tell them apart. The grey bands are the risks for which the conformal rule withholds a call. The risk meter above shows the call for the woman you are looking at.</span></figcaption>
+  </figure>
+</div>
+
 <h2 id="read">Read more</h2>
 <div class="reading">
   <a href="docs/OVERVIEW.html"><span>5 minutes</span><b>Start here</b>The whole project in plain English: the question, the data, how good the model is and what it can't do.</a>
@@ -545,6 +586,34 @@ function renderWhatIf(flagged) {
   el.innerHTML = `<ul style="margin:0 0 0 18px;padding:0">${lines.join("")}</ul>`;
 }
 
+// How much would this woman's estimate move if the model were trained on a different 768 women? The page holds 200 refitted
+// models (D.boot) as lookup tables, reads her risk from each, and reports the middle 95%. Mirrors uncertainty.risks_from_tables.
+const BOOT = D.boot, NB = BOOT.base.length;
+function bootLookup(fi, x, b) {
+  const f = F[fi], g = BOOT.grid[f], c = BOOT.contribution[f][b], n = g.length;
+  if (x <= g[0]) return c[0];
+  if (x >= g[n - 1]) return c[n - 1];
+  let lo = 0, hi = n - 1;
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (g[mid] <= x) lo = mid; else hi = mid; }
+  return c[lo] + (x - g[lo]) / (g[hi] - g[lo]) * (c[hi] - c[lo]);
+}
+function percentile(sorted, q) {          // linear interpolation, the same rule numpy uses
+  const pos = (sorted.length - 1) * q / 100, i = Math.floor(pos), t = pos - i;
+  return i + 1 < sorted.length ? sorted[i] + t * (sorted[i + 1] - sorted[i]) : sorted[i];
+}
+function riskRange(values, missing) {
+  const ps = [];
+  for (let b = 0; b < NB; b++) {
+    let z = BOOT.base[b];
+    F.forEach((f, i) => { z += bootLookup(i, missing[i] ? M.median[i] : values[i], b); });
+    ps.push(1 / (1 + Math.exp(-z)));
+  }
+  ps.sort((a, c) => a - c);
+  return {lo: percentile(ps, 2.5), hi: percentile(ps, 97.5)};
+}
+// Conformal call at one error level: below `low` is a confident no, above `high` a confident yes, in between too uncertain.
+function conformalCall(p, th) { return p < th.low ? "no" : p > th.high ? "yes" : "uncertain"; }
+
 function buildFields() {
   const host = document.getElementById("fields");
   F.forEach((f, i) => {
@@ -591,6 +660,18 @@ function render() {
     : "In a screening programme she would not be flagged."}</span>`;
 
   renderWhatIf(flagged);
+  const rg = riskRange(state.v, state.miss);
+  const band = document.getElementById("rangeband");
+  band.style.left = (rg.lo * 100) + "%"; band.style.width = Math.max(0.5, (rg.hi - rg.lo) * 100) + "%";
+  document.getElementById("rangetext").innerHTML = `<b>How much could this estimate move?</b> Between ${Math.round(rg.lo * 100)}% and ${Math.round(rg.hi * 100)}% (the bar under the meter), if the model had been trained on a different set of 768 women like these.`;
+  const lines = [["90", "0.1"], ["80", "0.2"]].map(([lvl, a]) => {
+    const th = D.conf[a], c = conformalCall(p, th);
+    const text = c === "no" ? `<b>Confident no.</b> About ${Math.round(th.no_wrong * 100)} in 100 women called this way have diabetes anyway.`
+      : c === "yes" ? `<b>Confident yes.</b> About ${Math.round(th.yes_wrong * 100)} in 100 women called this way are healthy.`
+      : `<b>Too uncertain to call.</b> Only women below ${Math.round(th.low * 100)}% or above ${Math.round(th.high * 100)}% get a call.`;
+    return `<div style="margin:2px 0"><span class="muted" style="color:var(--muted)">At the ${lvl}% level:</span> ${text}</div>`;
+  });
+  document.getElementById("sure").innerHTML = `<div style="margin-bottom:4px"><b>How sure can the model be about her outcome?</b></div>` + lines.join("");
   const max = Math.max(1.2, ...parts.map(Math.abs));
   document.getElementById("contrib").innerHTML = F.map((f, i) => ({f, i, c: parts[i]}))
     .sort((a, b) => Math.abs(b.c) - Math.abs(a.c))
@@ -632,6 +713,7 @@ document.querySelectorAll("[data-cut]").forEach(b => b.addEventListener("click",
 document.getElementById("cut").addEventListener("input", e => { state.cut = +e.target.value; render(); });
 render();
 window.__predict = predict;
+window.__range = (values) => riskRange(values, F.map(() => false));
 window.__needed = (values, cut, name, limit) => { state.v = values.slice(); state.miss = F.map(() => false); state.cut = cut; return needed(name, limit); };   // used by the automated check that compares this page with scikit-learn
 </script>
 </body>

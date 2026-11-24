@@ -34,6 +34,7 @@ Every finding, organised by question and marked by how solid it is, is in [docs/
 | `src/contest.py` | Milestone 4: tuned model contest (nested cross-validation, Optuna), corrected t-test, stacked ensemble |
 | `src/decision.py` | Milestone 5: rebalancing comparison, cost-based cut-offs, decision curve, age-band policies |
 | `src/explain.py` | Milestone 6: permutation importance, BMI plateau test, SHAP check, boosted-tree comparison, counterfactuals |
+| `src/uncertainty.py` | Milestone 7: bootstrap ranges exported for the page, spread and coverage checks, conformal prediction |
 | `src/evaluate.py` | Runs the whole evaluation, writes `reports/` |
 | `src/figures.py` | Charts shared by the notebooks and the site |
 | `src/run_notebooks.py` | Re-runs every notebook top to bottom |

@@ -27,8 +27,8 @@ Last updated: 2026-11-23
 | E16 | Decision-curve analysis and a cost-based cut-off: cut-off = 1 / (1 + cost ratio); the page offers 2x, 5x (default) and 10x | M5 | Done |
 | E17 | Permutation importance, partial-dependence and ICE curves, SHAP checked against the exact contributions, and a boosted-tree model ranked the same way; BMI plateau tested (shape real, benefit likely) | M6 | Done |
 | E18 | Counterfactual explanations in the app: the "What would change this?" box (smallest glucose or BMI drop that clears a flagged woman) | M6 | Done |
-| E19 | Bootstrap interval around each individual estimate | M7 | Planned |
-| E20 | Conformal prediction with a "too uncertain to call" outcome | M7 | Planned |
+| E19 | Bootstrap interval around each individual estimate, shown on the page, checked by a coverage simulation (covers 91% against the 95% label) | M7 | Done |
+| E20 | Conformal prediction with a "too uncertain to call" outcome, shown on the page at the 90% and 80% levels, guarantee verified on 300 splits | M7 | Done |
 | E21 | External validation on a different population | M8 | Planned |
 | E22 | Population-shift measurement, recalibration, wider subgroup checks | M8 | Planned |
 | E23 | Clustering and low-dimensional maps (PCA, UMAP) | M9 | Planned |

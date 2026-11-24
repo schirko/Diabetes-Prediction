@@ -42,6 +42,8 @@ NOTEBOOK_BLURBS = {
                                      "and the eight-input baseline model.",
     "04_missing_data": "Seven ways to handle the missing readings, a test of whether insulin can be guessed back, "
                        "and why the published model now leaves insulin and skinfold out.",
+    "09_uncertainty": "A 95% range around each woman's risk, a simulation of whether that range is honest, and a "
+                      "conformal rule that says yes, no or too uncertain to call, with its guarantee checked.",
     "08_explainability": "Which inputs matter, what shape each curve has, whether the BMI plateau is real, a SHAP check "
                          "against the model's exact contributions, and what change would clear a flagged woman.",
     "05_curved_effects": "Why the model over-flagged older women, nine curved and boosted models compared, "
@@ -207,7 +209,25 @@ def tokens(m: dict) -> dict:
         "cf_flag_per100": str(round(cf5["share_flagged"] * 100)),
         "cf_glu_lim": f"{cf5['limits']['Glucose']:.0f}", "cf_bmi_lim": f"{cf5['limits']['BMI_share'] * 100:.0f}",
     }
-    extra = ratio_rows | m6_tokens | {
+    m7 = m["m7"]
+    iv, cv, conf, sp = m7["intervals"], m7["coverage"], m7["conformal"], m7["spread_check"]
+    m7_tokens = {
+        "iv_median": pct(iv["median_width"]), "iv_low": pct(iv["by_risk"]["under 10%"]["median_width"]),
+        "iv_mid": pct(iv["by_risk"]["30% to 60%"]["median_width"]), "iv_p90": pct(iv["p90_width"]),
+        "iv_cut_inside": pct(iv["cutoff_inside"]["5"]["share"]),
+        "cov_boot": pct(cv["coverage_mean"]), "cov_boot_low": pct(cv["coverage_low"]), "cov_boot_high": pct(cv["coverage_high"]),
+        "spread_ratio": f"{sp['median_ratio']:.1f}", "spread_corr": f"{sp['corr_log_sd']:.2f}",
+        "cf90_cov0": pct(conf["0.1"]["cov0"]), "cf90_cov1": pct(conf["0.1"]["cov1"]),
+        "cf80_cov0": pct(conf["0.2"]["cov0"]), "cf80_cov1": pct(conf["0.2"]["cov1"]),
+        "cf90_unc": pct(conf["0.1"]["uncertain"]), "cf80_unc": pct(conf["0.2"]["uncertain"]),
+        "cf90_no": pct(conf["0.1"]["no"]), "cf90_yes": pct(conf["0.1"]["yes"]),
+        "cf80_no": pct(conf["0.2"]["no"]), "cf80_yes": pct(conf["0.2"]["yes"]),
+        "cf90_nowrong": pct(conf["0.1"]["no_wrong"]), "cf90_yeswrong": pct(conf["0.1"]["yes_wrong"]),
+        "cf80_nowrong": pct(conf["0.2"]["no_wrong"]), "cf80_yeswrong": pct(conf["0.2"]["yes_wrong"]),
+        "cf90_low": pct(m7["page_thresholds"]["0.1"]["low"]), "cf90_high": pct(m7["page_thresholds"]["0.1"]["high"]),
+        "cf80_low": pct(m7["page_thresholds"]["0.2"]["low"]), "cf80_high": pct(m7["page_thresholds"]["0.2"]["high"]),
+    }
+    extra = ratio_rows | m6_tokens | m7_tokens | {
         "pub_ratio": str(pub["ratio"]), "cut85": f"{scr['threshold']:.2f}", "cut85_pct": pct(scr["threshold"]),
         "old_ratio": f"{m5['costs']['old_implied_ratio']:.1f}",
         "cost5_old": f"{c5['cost_per_100']['Old rule (catch 85%)']:.0f}",
@@ -313,6 +333,10 @@ def build():
         "cut": metrics["m5"]["published"]["cutoff"],
         "presets": {r: v["cutoff"] for r, v in metrics["m5"]["costs"]["ratios"].items()},
         "cf_limits": metrics["m6"]["counterfactual"]["5"]["limits"],
+        "boot": json.loads((ROOT / "reports" / "bootstrap.json").read_text()),
+        "conf": {a: {"low": v["low"], "high": v["high"], "no_wrong": metrics["m7"]["conformal"][a]["no_wrong"],
+                     "yes_wrong": metrics["m7"]["conformal"][a]["yes_wrong"]}
+                 for a, v in metrics["m7"]["page_thresholds"].items()},
         "oof": {"p": [round(float(v), 6) for v in oof["p_current"]], "y": [int(v) for v in oof["outcome"]]},
         "check": model["check"],
     }

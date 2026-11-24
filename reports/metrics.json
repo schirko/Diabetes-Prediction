@@ -6188,6 +6188,248 @@
    }
   }
  },
+ "m8": {
+  "n": 961,
+  "positives": 37,
+  "prevalence": 0.03850156087408949,
+  "pima_prevalence": 0.3489583333333333,
+  "outcome_parts": {
+   "a1c_6_5": 26,
+   "diagnosed": 14,
+   "both": 3
+  },
+  "auc": {
+   "value": 0.8794021294021294,
+   "low": 0.819110577152652,
+   "high": 0.9284136636636636,
+   "pima_in_sample": 0.8681268656716419
+  },
+  "glucose_only": {
+   "auc": 0.9023341523341524,
+   "low": 0.8243245180978145,
+   "high": 0.9605765963555312
+  },
+  "a1c_only": {
+   "positives": 26,
+   "auc": 0.932291238173591
+  },
+  "calibration": {
+   "mean_predicted": 0.2524853092186728,
+   "observed": 0.03850156087408949,
+   "slope": 0.8532016596760605,
+   "intercept": -2.9638789224766766,
+   "brier": 0.12418651162553627,
+   "brier_prevalence_only": 0.037019190684348266
+  },
+  "bands": {
+   "under 10%": {
+    "n": 427,
+    "mean_predicted": 0.031086929036828685,
+    "observed": 0.00234192037470726
+   },
+   "10% to 30%": {
+    "n": 210,
+    "mean_predicted": 0.18191573261976476,
+    "observed": 0.01904761904761905
+   },
+   "30% to 60%": {
+    "n": 184,
+    "mean_predicted": 0.44175117779224216,
+    "observed": 0.02717391304347826
+   },
+   "60% and over": {
+    "n": 140,
+    "mean_predicted": 0.7848553064035398,
+    "observed": 0.19285714285714287
+   }
+  },
+  "recalibrated": {
+   "brier": 0.03151372062343119,
+   "mean_predicted": 0.03855296940949207,
+   "auc": 0.8792266292266293
+  },
+  "cutoffs": {
+   "2": {
+    "cutoff": 0.33,
+    "flagged": 0.32049947970863685,
+    "sensitivity": 0.8648648648648649,
+    "specificity": 0.7012987012987013,
+    "precision": 0.1038961038961039,
+    "missed_per_100": 0.5202913631633714,
+    "false_alarms_per_100": 28.720083246618106,
+    "caught_per_100": 3.3298647242455774
+   },
+   "5": {
+    "cutoff": 0.17,
+    "flagged": 0.4547346514047867,
+    "sensitivity": 0.8918918918918919,
+    "specificity": 0.5627705627705628,
+    "precision": 0.07551487414187644,
+    "missed_per_100": 0.4162330905306972,
+    "false_alarms_per_100": 42.039542143600414,
+    "caught_per_100": 3.433922996878252
+   },
+   "10": {
+    "cutoff": 0.09,
+    "flagged": 0.5702393340270552,
+    "sensitivity": 0.972972972972973,
+    "specificity": 0.4458874458874459,
+    "precision": 0.06569343065693431,
+    "missed_per_100": 0.1040582726326743,
+    "false_alarms_per_100": 53.27783558792924,
+    "caught_per_100": 3.7460978147762747
+   }
+  },
+  "cutoffs_pima": {
+   "2": {
+    "cutoff": 0.33,
+    "flagged": 0.4479166666666667,
+    "sensitivity": 0.8134328358208955,
+    "specificity": 0.748,
+    "precision": 0.6337209302325582,
+    "missed_per_100": 6.510416666666667,
+    "false_alarms_per_100": 16.40625,
+    "caught_per_100": 28.385416666666668
+   },
+   "5": {
+    "cutoff": 0.17,
+    "flagged": 0.62109375,
+    "sensitivity": 0.9402985074626866,
+    "specificity": 0.55,
+    "precision": 0.5283018867924528,
+    "missed_per_100": 2.0833333333333335,
+    "false_alarms_per_100": 29.296875,
+    "caught_per_100": 32.8125
+   },
+   "10": {
+    "cutoff": 0.09,
+    "flagged": 0.734375,
+    "sensitivity": 0.9888059701492538,
+    "specificity": 0.402,
+    "precision": 0.4698581560283688,
+    "missed_per_100": 0.390625,
+    "false_alarms_per_100": 38.932291666666664,
+    "caught_per_100": 34.505208333333336
+   }
+  },
+  "by_age": {
+   "21 to 44": {
+    "n": 428,
+    "positives": 8,
+    "auc": 0.975297619047619,
+    "mean_predicted": 0.2055293809096801,
+    "observed": 0.018691588785046728
+   },
+   "45 to 64": {
+    "n": 341,
+    "positives": 15,
+    "auc": 0.8732106339468302,
+    "mean_predicted": 0.3340591834079175,
+    "observed": 0.04398826979472141
+   },
+   "65 and over": {
+    "n": 192,
+    "positives": 14,
+    "auc": 0.8507223113964687,
+    "mean_predicted": 0.21227929993594588,
+    "observed": 0.07291666666666667
+   }
+  },
+  "by_group": {
+   "Mexican American": {
+    "n": 127,
+    "positives": 4,
+    "auc": 0.9552845528455285,
+    "mean_predicted": 0.34226010387507305,
+    "observed": 0.031496062992125984
+   },
+   "Other Hispanic": {
+    "n": 98,
+    "positives": 3,
+    "auc": 0.9578947368421054,
+    "mean_predicted": 0.27448315196349615,
+    "observed": 0.030612244897959183
+   },
+   "White, not Hispanic": {
+    "n": 431,
+    "positives": 17,
+    "auc": 0.8387325944870703,
+    "mean_predicted": 0.22649390658288962,
+    "observed": 0.03944315545243619
+   },
+   "Black, not Hispanic": {
+    "n": 162,
+    "positives": 8,
+    "auc": 0.885551948051948,
+    "mean_predicted": 0.29978912806319125,
+    "observed": 0.04938271604938271
+   },
+   "Asian, not Hispanic": {
+    "n": 116,
+    "positives": 5,
+    "auc": 0.972972972972973,
+    "mean_predicted": 0.16458947833622328,
+    "observed": 0.04310344827586207
+   },
+   "Other or mixed": {
+    "n": 27,
+    "positives": 0,
+    "auc": null,
+    "mean_predicted": 0.25907067052308663,
+    "observed": 0.0
+   }
+  },
+  "shift": {
+   "Age": {
+    "pima_median": 29.0,
+    "nhanes_median": 48.0,
+    "pima_p10": 22.0,
+    "nhanes_p10": 26.0,
+    "pima_p90": 51.0,
+    "nhanes_p90": 73.0
+   },
+   "Glucose": {
+    "pima_median": 117.0,
+    "nhanes_median": 109.0,
+    "pima_p10": 86.2,
+    "nhanes_p10": 76.0,
+    "pima_p90": 167.0,
+    "nhanes_p90": 173.0
+   },
+   "BMI": {
+    "pima_median": 32.3,
+    "nhanes_median": 27.8,
+    "pima_p10": 24.0,
+    "nhanes_p10": 20.66,
+    "pima_p90": 41.61999999999999,
+    "nhanes_p90": 39.879999999999995
+   },
+   "BloodPressure": {
+    "pima_median": 72.0,
+    "nhanes_median": 67.33333333333333,
+    "pima_p10": 58.0,
+    "nhanes_p10": 54.0,
+    "pima_p90": 88.0,
+    "nhanes_p90": 81.0
+   },
+   "Pregnancies": {
+    "pima_median": 3.0,
+    "nhanes_median": 2.0,
+    "pima_p10": 0.0,
+    "nhanes_p10": 0.0,
+    "pima_p90": 9.0,
+    "nhanes_p90": 5.0
+   }
+  },
+  "domain_auc": 0.9190540452653485,
+  "missing": {
+   "Pregnancies": 53,
+   "Glucose": 0,
+   "BloodPressure": 25,
+   "BMI": 4,
+   "Age": 0
+  }
+ },
  "current": {
   "features": [
    "Pregnancies",

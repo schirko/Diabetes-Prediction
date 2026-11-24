@@ -3,7 +3,7 @@
 This page explains the whole project without statistics. Words in **bold** are explained in the
 [glossary](GLOSSARY.md). For the full list of conclusions, see the [findings](FINDINGS.md).
 
-Last updated: 2026-11-23, after Milestone 7.
+Last updated: 2026-11-23, after Milestone 8.
 
 ## The question
 
@@ -115,6 +115,14 @@ the time for women with and without diabetes separately. The price is that a thi
 call at that level, and a confident "yes" is still wrong for 25 in 100 women, because the guarantee is about each group,
 not each call.
 
+### Does it work on other women?
+
+The finished model was tried, unchanged, on 961 women from a US national health survey. They are older and lighter than the
+original women, and only about 4 in 100 have diabetes (against 35 in 100). The model still ranks them well: about the same
+score as before (AUC 0.88), though no better than blood sugar alone. But its percentages are far too high. It says 25% on
+average where 4% have diabetes, and the cut-off that suits the original women would flag nearly half of these women. So
+the ranking travels and the numbers do not. Only 37 of the 961 women have diabetes, so these results are rough.
+
 ## Main conclusions
 
 1. **A fair test changes the story.** The honest accuracy of the original method is 77%, not 81%, and accuracy was
@@ -138,20 +146,22 @@ not each call.
    explanation tool, matches the model's own arithmetic to within 0.002.
 9. **Each estimate comes with a range.** It is about 19 points wide and a little too narrow (91% against a 95% label).
    A separate rule can say "too uncertain", with a guarantee that holds on unseen women.
+10. **The ranking travels; the risk numbers don't.** On 961 women from a different survey the model ranks risk about as
+    well as before, but its percentages are several times too high, and the cut-off would flag far too many.
 
 ## What it can't tell you
 
-- **Whether it works for anyone else.** Every woman in the data is from one community, studied decades ago. It has
-  not been tested on other groups, men, or present-day patients.
+- **Whether its risk numbers work for anyone else.** The ranking held on one outside group of women (a US survey), but
+  the percentages were far too high there. It has not been tested on men or on present-day patients, or checked against
+  five-year outcomes anywhere else.
 - **Anything about an individual's health.** It is a demonstration of how a risk model is built and judged. It is
   not a medical tool.
 
 ## What's next
 
-The project is planned as ten **milestones**. Seven are done. The next ones ask:
+The project is planned as ten **milestones**. Eight are done. The next ones ask:
 
-- **Milestones 8 to 10:** does it work on other populations; are there hidden groups in the data; and production
-  polish.
+- **Milestones 9 and 10:** are there hidden groups in the data; and production polish.
 
 The full plan is in the [roadmap](MILESTONES.md).
 

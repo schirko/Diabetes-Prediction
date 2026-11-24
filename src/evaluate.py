@@ -291,6 +291,12 @@ def milestone7(Xc, y, p, rerun=False) -> dict:
     return res
 
 
+def milestone8() -> dict:
+    """External validation on NHANES women (notebook 10)."""
+    from . import decision, external
+    return external.run({r: decision.cutoff_for_ratio(r) for r in decision.COST_RATIOS})
+
+
 def main():
     warnings.filterwarnings("ignore")
     REPORTS.mkdir(exist_ok=True)
@@ -343,6 +349,7 @@ def main():
         "m6": milestone6(Xc, y),
         # --- Milestone 7: uncertainty (notebook 09)
         "m7": milestone7(Xc, y, p_current),
+        "m8": milestone8(),
         # --- The current model: what the web page runs and reports
         "current": current,
     }

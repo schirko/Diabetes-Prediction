@@ -261,7 +261,8 @@ BMI and age are allowed to bend, so risk can level off or fall where the data sa
 
 <div class="warnbox"><b>This is not a medical tool.</b> The data is 768 women of Pima heritage aged 21 and over, collected near
 Phoenix, Arizona and published in 1988. The model has not been tested on anyone else. It is here to show how a risk model is
-built and judged, not to assess anyone's health.</div>
+built and judged, not to assess anyone's health. It has since been run, unchanged, on one outside group of women. It ranked
+them well but its risk numbers were far too high (<a href="#story12">Story 12</a>).</div>
 
 <h2 id="findings">What we found</h2>
 <p class="note">The main results, each with the chart behind it. For every conclusion, how solid it is and where the evidence
@@ -480,6 +481,42 @@ is, see the <a href="docs/FINDINGS.html">findings</a>. Unfamiliar word? Try the 
     <figcaption><span class="howto"><b>How to read it:</b> the two colours are women without and with diabetes at each estimated
     risk. Where they overlap, no rule can tell them apart. The grey bands are the risks for which the conformal rule withholds a call. The risk meter above shows the call for the woman you are looking at.</span></figcaption>
   </figure>
+</div>
+
+<div class="story" id="story12">
+  <h3>12. Does it work on women who are not in this data?</h3>
+  <p>So far every test used the same 768 women. To find out how the model behaves elsewhere, the finished model, with nothing
+  changed, was run on {{x_n}} women from NHANES, a US national health survey, who had the same two-hour glucose test. They are not
+  much like the Pima women: older (median age {{x_age_nh}} against {{x_age_pima}}), lighter, and with fewer pregnancies, so much
+  so that a simple model can tell the two groups apart with AUC {{x_domain}}. And only {{x_pos}} of them ({{x_prev}}) have diabetes by the
+  definition used here, against {{x_prev_pima}} of the Pima women. That definition is a blood test result (HbA1c of 6.5% or higher) or a
+  doctor's diagnosis, which is not the same as "diagnosed within five years", so this is a test of behaviour away from home, not a
+  like-for-like repeat.</p>
+  <p><b>The ranking held up.</b> The model puts women who have diabetes above women who don't with AUC {{x_auc}} (95% range
+  {{x_auc_lo}} to {{x_auc_hi}}), in line with 0.85 on unseen Pima women. But the glucose reading alone scores {{x_auc_glu}}, so on
+  this data the model adds nothing measurable beyond glucose.</p>
+  <p><b>The risk numbers did not.</b> On average the model predicts {{x_pred}} and {{x_prev}} actually have diabetes. Women it puts
+  in the top band, at {{x_top_pred}} on average, are {{x_top_obs}} in fact. Most of the gap is that the model learned from a group where
+  35 in 100 have diabetes. A single rescaling learned on part of the NHANES women fixes the average (the model's error score
+  falls from {{x_brier}} to {{x_brier_recal}}, against {{x_brier_avg}} for quoting everyone the average), but that needs outside women with known
+  outcomes.</p>
+  <figure>
+    <img src="images/m8_calibration.png" alt="Left: for four risk bands, the model's average predicted risk (3, 18, 44 and 78 percent) beside the share who had diabetes (0, 2, 3 and 19 percent). Right: AUC with its 95% range for Pima women (0.85), NHANES women with the model (0.88) and NHANES women using glucose alone (0.90); the ranges overlap.">
+    <figcaption><span class="howto"><b>How to read it:</b> on the left, each pair of bars should match if the risks were right.
+    On the right, the dot is the AUC and the line is its 95% range; a dot further right means better ranking.</span></figcaption>
+  </figure>
+  <p>The cut-off shows the same thing. At the 5 times cut-off ({{x_flag5_pima}} of Pima women are flagged), the model still catches
+  {{x_sens5}} of the cases in NHANES, but it flags {{x_flag5}} of all women, about {{x_fa5}} in 100 get an unnecessary test, and only
+  {{x_prec5}} of the flagged women have diabetes. A cut-off chosen from costs in a group where 35% have diabetes does not suit a group
+  where 4% do.</p>
+  <figure>
+    <img src="images/m8_cutoffs.png" alt="Per 100 women, cases caught, missed and false alarms at the 2, 5 and 10 times cut-offs, for Pima women on the left and NHANES women on the right. In NHANES the false alarms are 29, 42 and 53 per 100, while cases caught are only 3.3 to 3.7 per 100.">
+    <figcaption><span class="howto"><b>How to read it:</b> each group of bars is one cut-off. Green is cases found, brown cases
+    missed, grey false alarms, all per 100 women. The two panels have the same vertical scale.</span></figcaption>
+  </figure>
+  <p>By age and ethnic group the ranking looks fine wherever it can be measured, but each group has only 3 to 17 women with diabetes,
+  so that is weak evidence. The risks are too high in every group. What carries over is the ranking. What doesn't is the level of the
+  risks and the cut-off. Differences in how the data was collected can't be separated from differences between the women.</p>
 </div>
 
 <h2 id="read">Read more</h2>

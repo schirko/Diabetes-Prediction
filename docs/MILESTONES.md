@@ -13,8 +13,8 @@ Item numbers (E08, B10) refer to [ENHANCEMENTS_AND_BUGS.md](ENHANCEMENTS_AND_BUG
 | M5 | Class imbalance and cost-based decisions | Done 2026-11-23 | Do resampling tricks help, or is moving the cut-off enough? | 07 |
 | M6 | Explainability | Done 2026-11-23 | Why did the model give this woman this number? | 08 |
 | M7 | Uncertainty | Done 2026-11-23 | How sure is the model about one person's estimate? | 09 |
-| M8 | External validation | Next | Does it work on people who are not in this dataset? | 10 |
-| M9 | Unsupervised structure | Planned | Are there natural groups or odd records the labels don't show? | 11 |
+| M8 | External validation | Done 2026-11-23 | Does it work on people who are not in this dataset? | 10 |
+| M9 | Unsupervised structure | Next | Are there natural groups or odd records the labels don't show? | 11 |
 | M10 | Production polish | Planned | Could someone else rebuild, test and trust this? | none |
 | M11 | Presentation | Planned, after M10 | Can the whole project be told in 12 slides to a non-analyst? | none |
 
@@ -115,7 +115,14 @@ What came out of it:
 - E21: test the frozen model on a different population (for example NHANES survey data with matching measurements).
 - E22: measure the shift between populations and recalibrate; extend the subgroup checks beyond age.
 
-**Exit check:** an honest "works here, fails there" table.
+**Exit check, met:** an honest "works here, fails there" table (notebook 10 and Story 12 on the page).
+
+What came out of it:
+- The outside data is 961 women aged 21 and over from NHANES 2013 to 2014 who had the two-hour glucose test. Only 37 (3.9%) count as having diabetes (HbA1c of 6.5% or higher, or a doctor's diagnosis), against 35% in the Pima data. They are older (median 48 against 29), lighter and have had fewer pregnancies; a simple model separates the two groups with AUC 0.92 (D26).
+- The ranking carries over: AUC 0.88 (0.82 to 0.93) against 0.85 on unseen Pima women. The glucose reading alone scores 0.90, so the model adds nothing measurable beyond glucose here.
+- The risk numbers do not: 25% predicted on average against 3.9% actual. A single shift fitted on held-out folds fixes the average (error score 0.124 down to 0.032, against 0.037 for quoting the average) but needs outside outcomes (D27).
+- At the 5 times cut-off the model catches 33 of 37 cases (89%) but flags 45% of women and only 7.6% of those flagged have diabetes.
+- By age and ethnic group the ranking looks fine wherever it can be measured, from 3 to 17 cases per group, which is weak evidence. The risks are too high in every group.
 
 ## M9. Unsupervised structure
 

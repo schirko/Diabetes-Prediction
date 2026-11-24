@@ -35,6 +35,7 @@ Every finding, organised by question and marked by how solid it is, is in [docs/
 | `src/decision.py` | Milestone 5: rebalancing comparison, cost-based cut-offs, decision curve, age-band policies |
 | `src/explain.py` | Milestone 6: permutation importance, BMI plateau test, SHAP check, boosted-tree comparison, counterfactuals |
 | `src/uncertainty.py` | Milestone 7: bootstrap ranges exported for the page, spread and coverage checks, conformal prediction |
+| `src/external.py` | Milestone 8: builds the NHANES table and tests the frozen model on it (ranking, risks, cut-offs, subgroups) |
 | `src/evaluate.py` | Runs the whole evaluation, writes `reports/` |
 | `src/figures.py` | Charts shared by the notebooks and the site |
 | `src/run_notebooks.py` | Re-runs every notebook top to bottom |
@@ -64,6 +65,11 @@ python -m src.build_site        # writes the site to SITE_DIR (see .env.example)
 ## Limits
 
 The data is 768 women of Pima heritage aged 21 and over, collected near Phoenix, Arizona and published in 1988.
-The model has not been tested on anyone else and is not a medical tool.
+The model was run on one outside group (US women in a national survey): it ranked well but its risk numbers were far too high. It is not a medical tool.
 
 Data source: National Institute of Diabetes and Digestive and Kidney Diseases; Smith et al., 1988.
+
+Outside data (Milestone 8): NHANES 2013 to 2014, US Centers for Disease Control and Prevention. To rebuild `data/nhanes_women.csv`
+from scratch, download `DEMO_H`, `OGTT_H`, `BMX_H`, `BPX_H`, `RHQ_H`, `GHB_H` and `DIQ_H` (`.xpt` files) from
+`https://wwwn.cdc.gov/Nchs/Data/Nhanes/Public/2013/DataFiles/` into `data/nhanes/`, delete the CSV and run `python -m src.evaluate`.
+The small CSV is committed, so the tests and the notebooks run without the raw files.

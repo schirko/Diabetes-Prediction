@@ -3,6 +3,7 @@ import json
 import math
 
 import numpy as np
+from sklearn.metrics import roc_auc_score
 
 from src.data import FEATURES, ROOT, ZERO_MEANS_MISSING, load_data, load_raw
 from src.evaluate import confusion_at, export_model, pick_threshold
@@ -179,3 +180,16 @@ def test_m7_coverage_is_near_its_targets():
     for a, c in m7["conformal"].items():
         assert abs(c["cov0"] - c["target"]) < 0.03 and abs(c["cov1"] - c["target"]) < 0.03
     assert m7["coverage"]["coverage_mean"] > 0.85         # the range under-covers its 95% label, but not badly
+
+
+def test_nhanes_table_and_frozen_model():
+    from src import external
+    nh = external.load_table()
+    assert len(nh) == 961 and int(nh["Outcome"].sum()) == 37
+    assert nh["Age"].min() >= 21 and nh["Glucose"].between(30, 600).all()
+    model, cols = external.frozen_model()
+    p = external.predict(model, cols, nh)           # family history is absent in NHANES, so it is filled by the model
+    assert p.shape == (961,) and ((p > 0) & (p < 1)).all()
+    m8 = json.loads((ROOT / "reports" / "metrics.json").read_text())["m8"]
+    assert abs(m8["auc"]["value"] - roc_auc_score(nh["Outcome"], p)) < 1e-9
+    assert m8["auc"]["low"] > 0.75 and m8["calibration"]["mean_predicted"] > 5 * m8["calibration"]["observed"]

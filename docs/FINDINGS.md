@@ -8,7 +8,7 @@ Each answer is the current one; when a later milestone changes it, the answer is
 under "Changed". Evidence points to the notebooks; item numbers (E10, B12, D11) refer to the
 [tracker](ENHANCEMENTS_AND_BUGS.md) and [decisions](DECISIONS.md).
 
-Last updated: 2026-11-23, after Milestone 6.
+Last updated: 2026-11-23, after Milestone 8.
 
 **How solid each answer is:**
 
@@ -38,7 +38,7 @@ kept separate (nested cross-validation).
 | Can it say "too uncertain"? | Yes. Guarantee holds on unseen women; 33% uncertain at 90%, 7% at 80% | Firm |
 | Does rebalancing help? | No: same ranking, distorted risks | Firm |
 | Does it beat a simple glucose rule? | Yes: 21 more cases found for about the same number of false alarms | Firm |
-| Does it work outside this data? | Unknown | Open (M8) |
+| Does it work outside this data? | The ranking does (AUC 0.88 on 961 US women). The risk numbers do not: 25% predicted against 3.9% actual | Likely (only 37 cases) |
 
 ## 1. How good is the model?
 
@@ -241,13 +241,36 @@ found.
 
 ## 10. Does it work outside this data?
 
-**In plain terms.** We don't know yet. Every woman in the data comes from one community studied decades ago.
+**In plain terms.** Partly. On women from a US national survey, the model still ranks who is more likely to have diabetes
+about as well as on the original women, but the risk percentages it gives are far too high, and the cut-off would flag
+nearly half of all women.
 
-**Answer.** Unknown. All 768 women are of Pima heritage, aged 21 and over, from one community near Phoenix, Arizona,
-in data published in 1988. Diabetes is unusually common in this group (35%). Nothing here shows the model works on
-anyone else, and the page says so.
+**Answer.** The frozen model was run, unchanged, on 961 women aged 21 and over from NHANES 2013 to 2014 who had the same two-hour
+glucose test. Only 37 (3.9%) have diabetes by the definition used (HbA1c of 6.5% or higher, or a doctor's diagnosis), against 35% of
+the Pima women, so every number below is uncertain by a lot.
 
-**How solid.** Open. Milestone 8 tests the model on a different population (E21).
+- **The groups differ.** Median age 48 against 29, BMI 27.8 against 32.3, 2 pregnancies against 3. A simple model separates
+  them with AUC 0.92 (0.50 would mean identical).
+- **The ranking holds.** AUC 0.88 (95% range 0.82 to 0.93), against 0.85 on unseen Pima women. The glucose reading alone scores
+  0.90 (0.82 to 0.96), so the model adds nothing measurable beyond glucose here.
+- **The risks do not.** Average predicted risk 25%, actual 3.9%; the top band (average 78%) is 19% in fact. The model's error
+  score (Brier) is 0.124, against 0.037 for quoting everyone the average. Counting glucose of 200 or more as diabetes too raises
+  the actual share only to 7.1%. A single shift fitted on held-out folds brings the error score to 0.032.
+- **The cut-off.** At the 5 times cut-off the model catches 33 of 37 cases (89%; 94% on the Pima women) but flags 45% of
+  women (62% on Pima), about 42 in 100 get an unnecessary test, and 7.6% of flagged women have diabetes.
+- **Subgroups.** The ranking is fine wherever it can be measured (AUC 0.84 to 0.98 across age and ethnic groups), with 3 to 17
+  cases per group, so this is weak evidence. The risks are too high in every group.
+
+NHANES is a one-time snapshot, not five-year follow-up, and the Pima label was set by a glucose threshold, so differences in how
+diabetes was defined cannot be separated from differences between the women. Nothing here tests the model on men, children or
+present-day patients elsewhere.
+
+**How solid.** Likely for the ranking (the range overlaps 0.85 but spans 0.82 to 0.93 because there are few cases). Firm that
+the risk level does not transfer.
+
+**Evidence.** Notebook 10 and Story 12 on the project page.
+
+**Changed.** M1 to M7: unknown. M8: one outside group tested.
 
 ## 11. Why did the model give this woman this number?
 
@@ -327,4 +350,5 @@ model more complicated; none of them helped.
 | Tuning the curves model's own settings | +0.002, within noise | Notebook 06, 6.3 and 6.5 |
 | Class weights or SMOTE instead of moving the cut-off | Same ranking (AUC 0.851 to 0.853), same false alarms to catch 85% (152 to 154), risks too high (43 to 44% against 35%) | Notebook 07, 7.2 and 7.3 |
 | A separate cut-off for each age band | No better than one shared cut-off (42 against 40 per 100 women at 5 times) | Notebook 07, 7.9 |
+| Rescaling the risks for a new population | Fixes the average (error score 0.124 to 0.032) but needs outside outcomes, and adds little over quoting the average (0.037) | Notebook 10, 10.5 |
 | Straight line for BMI instead of a curve | 0.006 AUC lower, could be chance (p = 0.15), so the curve stays | Notebook 08, 8.4 |

@@ -29,8 +29,8 @@ Last updated: 2026-11-23
 | E18 | Counterfactual explanations in the app: the "What would change this?" box (smallest glucose or BMI drop that clears a flagged woman) | M6 | Done |
 | E19 | Bootstrap interval around each individual estimate, shown on the page, checked by a coverage simulation (covers 91% against the 95% label) | M7 | Done |
 | E20 | Conformal prediction with a "too uncertain to call" outcome, shown on the page at the 90% and 80% levels, guarantee verified on 300 splits | M7 | Done |
-| E21 | External validation on a different population | M8 | Planned |
-| E22 | Population-shift measurement, recalibration, wider subgroup checks | M8 | Planned |
+| E21 | External validation on a different population: frozen model on 961 NHANES women (ranking holds, AUC 0.88; risks far too high) | M8 | Done |
+| E22 | Population-shift measurement (domain AUC 0.92), recalibration by one shift, subgroup checks by age and ethnic group | M8 | Done |
 | E23 | Clustering and low-dimensional maps (PCA, UMAP) | M9 | Planned |
 | E24 | Anomaly detection as a data-quality check | M9 | Planned |
 | E25 | Model card | M10 | Planned |

@@ -589,6 +589,94 @@ def m7_coverage():
     return fig
 
 
+def m8_shift():
+    """Milestone 8: how different are the NHANES women from the Pima women, on the model's inputs?"""
+    from . import external
+    X, _ = load_data()
+    nh = external.load_table()
+    fig, axes = plt.subplots(1, 4, figsize=(11.2, 3.3))
+    for ax, (col, label, hi) in zip(axes, [("Age", "Age (years)", 85), ("Glucose", "Glucose (mg/dL)", 260),
+                                           ("BMI", "BMI", 60), ("Pregnancies", "Pregnancies", 12)]):
+        bins = np.arange(0, 13) - 0.5 if col == "Pregnancies" else np.linspace(X[col].dropna().min() * 0 + (15 if col == "Age" else 40 if col == "Glucose" else 15 if col == "BMI" else 0), hi, 25)
+        ax.hist(X[col].dropna(), bins=bins, density=True, histtype="stepfilled", color=WARM, alpha=0.45, label="Pima women")
+        ax.hist(nh[col].dropna(), bins=bins, density=True, histtype="stepfilled", color=GREEN, alpha=0.45, label="NHANES women")
+        ax.set_xlabel(label)
+        ax.set_yticks([])
+        ax.grid(axis="y", visible=False)
+    axes[0].legend(frameon=False, fontsize=9, loc="upper right")
+    axes[0].set_ylabel("Share of women")
+    fig.suptitle("NHANES women are older, lighter and have had fewer pregnancies", fontsize=12, fontweight="bold", x=0.01, ha="left")
+    fig.tight_layout(rect=(0, 0, 1, 0.92))
+    return fig
+
+
+def m8_calibration():
+    """Milestone 8: the model's ranking holds on NHANES, but its risks are far too high."""
+    m8 = _metrics()["m8"]
+    cur = _metrics()["current"]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(10.4, 3.8), gridspec_kw={"width_ratios": [1.15, 1]})
+    names = list(m8["bands"])
+    xs = np.arange(len(names))
+    pred = [m8["bands"][b]["mean_predicted"] * 100 for b in names]
+    obs = [m8["bands"][b]["observed"] * 100 for b in names]
+    w = 0.38
+    a1.bar(xs - w / 2, pred, width=w * 0.94, color=WARM, label="Model's average risk")
+    a1.bar(xs + w / 2, obs, width=w * 0.94, color=GREEN, label="Share who had diabetes")
+    for x, a, b in zip(xs, pred, obs):
+        a1.text(x - w / 2, a + 1.5, f"{a:.0f}%", ha="center", fontsize=9.5, color=INK)
+        a1.text(x + w / 2, b + 1.5, f"{b:.0f}%", ha="center", fontsize=9.5, color=INK)
+    a1.set_xticks(xs, [f"{b}\n({m8['bands'][b]['n']} women)" for b in names], fontsize=9)
+    a1.set_ylim(0, 100)
+    a1.set_ylabel("Percent")
+    a1.set_title("The risks run far too high on NHANES")
+    a1.legend(frameon=False, fontsize=9, loc="upper left")
+    a1.grid(axis="x", visible=False)
+    rows = [("Pima women,\nunseen (50 splits)", cur["oof_auc"], cur["oof_auc_ci"][0], cur["oof_auc_ci"][1], WARM),
+            ("NHANES women,\nthe model", m8["auc"]["value"], m8["auc"]["low"], m8["auc"]["high"], GREEN),
+            ("NHANES women,\nglucose alone", m8["glucose_only"]["auc"], m8["glucose_only"]["low"], m8["glucose_only"]["high"], MUTED)]
+    for i, (lab, v, lo, hi, col) in enumerate(rows):
+        a2.hlines(i, lo, hi, color=col, linewidth=2.2)
+        a2.plot([v], [i], "o", color=col, markersize=8)
+        a2.text(hi + 0.006, i, f"{v:.2f}", va="center", fontsize=9.5, color=INK)
+    a2.set_yticks(range(len(rows)), [r[0] for r in rows], fontsize=9)
+    a2.invert_yaxis()
+    a2.set_xlim(0.75, 1.0)
+    a2.set_xlabel("AUC (dot) with 95% range (line)")
+    a2.set_title("The ranking holds up")
+    a2.grid(axis="y", visible=False)
+    fig.tight_layout()
+    return fig
+
+
+def m8_cutoffs():
+    """Milestone 8: what the three cut-offs do per 100 women, in Pima and in NHANES."""
+    m8 = _metrics()["m8"]
+    fig, axes = plt.subplots(1, 2, figsize=(10.4, 3.5), sharey=True)
+    ratios = list(m8["cutoffs"])
+    for ax, key, title in [(axes[0], "cutoffs_pima", "Pima women (35 in 100 have diabetes)"),
+                           (axes[1], "cutoffs", "NHANES women (4 in 100)")]:
+        xs = np.arange(len(ratios))
+        caught = [m8[key][r]["caught_per_100"] for r in ratios]
+        missed = [m8[key][r]["missed_per_100"] for r in ratios]
+        false = [m8[key][r]["false_alarms_per_100"] for r in ratios]
+        w = 0.27
+        ax.bar(xs - w, caught, width=w * 0.94, color=GREEN, label="Cases caught")
+        ax.bar(xs, missed, width=w * 0.94, color=WARM, label="Cases missed")
+        ax.bar(xs + w, false, width=w * 0.94, color="#B9B5A8", label="False alarms")
+        for x, a, b, c in zip(xs, caught, missed, false):
+            ax.text(x - w, a + 1, f"{a:.0f}" if a >= 10 else f"{a:.1f}", ha="center", fontsize=9, color=INK)
+            ax.text(x, b + 1, f"{b:.1f}", ha="center", fontsize=9, color=INK)
+            ax.text(x + w, c + 1, f"{c:.0f}", ha="center", fontsize=9, color=INK)
+        ax.set_xticks(xs, [f"{r}x\n(cut-off {m8[key][r]['cutoff']:.2f})" for r in ratios], fontsize=9)
+        ax.set_title(title)
+        ax.grid(axis="x", visible=False)
+    axes[0].set_ylabel("Women per 100")
+    axes[0].set_ylim(0, 62)
+    axes[0].legend(frameon=False, fontsize=9, loc="upper left")
+    fig.tight_layout()
+    return fig
+
+
 ALL = {
     "missing": missing_values,
     "lucky_split": lucky_split,
@@ -607,6 +695,9 @@ ALL = {
     "m7_ranges": m7_ranges,
     "m7_zones": m7_zones,
     "m7_coverage": m7_coverage,
+    "m8_shift": m8_shift,
+    "m8_calibration": m8_calibration,
+    "m8_cutoffs": m8_cutoffs,
     "strategies": strategy_comparison,
     "recovery": recovery,
     "spread": imputation_spread,

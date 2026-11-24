@@ -35,6 +35,11 @@ PLAIN = {
     "04_missing_data.ipynb":
         "Half the insulin readings are missing. No method of filling them in helps, and the guesses can change the "
         "screening decision for 53 women, so the model now leaves insulin and skin thickness out.",
+    "10_external_validation.ipynb":
+        "We tested the finished model, unchanged, on 961 women from a US national health survey. It still ranks women well "
+        "(AUC 0.88, about the same as on the Pima women), but it is no better than glucose alone, and its risks are far too "
+        "high: it predicts about 25% on average where about 4% had diabetes. The ranking travels; the risk numbers do not, "
+        "and they would need rescaling for any new population.",
     "09_uncertainty.ipynb":
         "Every risk the page shows is an estimate from 768 women, so it could have come out differently. A 95% range around "
         "each risk shows how much (typically 19 points wide, widest in the middle of the scale), and a simulation shows the "
@@ -1523,6 +1528,202 @@ pd.Series({"Published model changed": "no",
                   "cut-off from Milestone 5 still decides who is flagged for a follow-up test, since it reflects the cost of a "
                   "missed case. The conformal call is a separate message about how much to trust the estimate for this woman.",
             next="Milestone 8 asks how the model behaves for different groups of women and whether the data is enough.",
+        ),
+    ],
+)
+# ---------------------------------------------------------------- notebook 10
+build(
+    "10_external_validation.ipynb",
+    "10. Does it work on women who are not in this data?",
+    "Everything so far used the same 768 women, however carefully they were split. This notebook does what a splitting scheme "
+    "cannot: it takes the finished model, fitted once on all 768 Pima women and never changed, and tests it on a different "
+    "group. The group is 961 women aged 21 and over from NHANES 2013 to 2014, a US national health survey, who had the same "
+    "two-hour glucose test. The two datasets measure different things in places, so the first sections say what had to be "
+    "adjusted. Everything after that is a straight answer to: where does the model hold up, and where does it not (E21, E22)? "
+    "Only 37 of the 961 women have diabetes by the definition used here, so every number below carries a wide margin.",
+    [
+        dict(
+            h="10.1 What the outside data is, and what had to change",
+            look="How the NHANES women were chosen, how diabetes was defined for them, and which model inputs could not be matched.",
+            code="""
+import json
+import numpy as np
+from src import external, figures
+
+m8 = json.load(open("../reports/metrics.json"))["m8"]
+nh = external.load_table()
+parts = m8["outcome_parts"]
+pd.Series({"women (21 and over, glucose test done, HbA1c known)": m8["n"],
+           "with HbA1c 6.5% or higher": parts["a1c_6_5"],
+           "told by a doctor they have diabetes": parts["diagnosed"],
+           "both": parts["both"],
+           "counted as having diabetes (either)": m8["positives"],
+           "share with diabetes": f"{m8['prevalence']:.1%}",
+           "share with diabetes in the Pima data": f"{m8['pima_prevalence']:.1%}",
+           "share if every glucose of 200 or more were counted too": f"{((nh.Outcome == 1) | (nh.Glucose >= 200)).mean():.1%}",
+           "women missing a pregnancy count": m8["missing"]["Pregnancies"],
+           "women missing blood pressure": m8["missing"]["BloodPressure"]}).to_frame("value")""",
+            read="Each row is a count of women. NHANES is a one-time survey, so it cannot say who will develop diabetes within "
+                 "five years, which is what the Pima outcome records. Instead a woman counts as having diabetes if her blood "
+                 "HbA1c (a different test from the glucose drink, reflecting average sugar over about three months) is 6.5% or "
+                 "higher, or she reports a doctor's diagnosis. Using HbA1c keeps the outcome from simply restating the glucose "
+                 "input. Two more differences: NHANES has only yes or no for a relative with diabetes, not the Pima family-history "
+                 "score, so that input is left blank and the model fills in the Pima typical value; and women on diabetes medicine "
+                 "are not given the glucose drink, so most women already being treated are missing from this sample.",
+            means="Only 37 of 961 women (3.9%) count as having diabetes, against 35% in the Pima data. That is a very different "
+                  "population, a different outcome, and a small number of cases to measure anything with. The consequences run "
+                  "through the rest of the notebook: any result that depends on how many women have diabetes will not carry "
+                  "over, and every result is uncertain by a lot. This is a test of how the model behaves away from home, not a "
+                  "like-for-like second trial.",
+            next="Look at how different the two groups of women are on the inputs the model uses.",
+        ),
+        dict(
+            h="10.2 How different are the women?",
+            look="Whether the NHANES women look like the Pima women on the five inputs the two datasets share.",
+            code="""
+figures.m8_shift();
+shift = pd.DataFrame(m8["shift"]).T[["pima_median", "nhanes_median", "pima_p10", "nhanes_p10", "pima_p90", "nhanes_p90"]]
+shift.columns = ["Pima median", "NHANES median", "Pima 10th pct", "NHANES 10th pct", "Pima 90th pct", "NHANES 90th pct"]
+display(shift)
+print(f"Can a simple model tell the two groups apart from these five inputs? AUC {m8['domain_auc']:.2f} (0.50 = identical groups)")""",
+            read="The charts overlay the two groups, one input each. The table gives the middle value and the 10th and 90th "
+                 "percentiles (the values that 10% of women fall below and above). The last line asks a different question: a "
+                 "separate model is trained to guess which dataset a woman came from, using only these five inputs. If the "
+                 "groups were alike it would do no better than a coin flip (0.50).",
+            means="They are quite different. NHANES women are older (median 48 against 29), lighter (BMI 27.8 against 32.3) and "
+                  "have had fewer pregnancies (median 2 against 3). Glucose is similar in the middle (109 against 117), with a "
+                  "longer upper tail in NHANES. A model can tell the groups apart with AUC 0.92, so the model will meet many "
+                  "combinations of inputs it saw rarely or never in training. Before looking at any result, we should expect "
+                  "some degradation.",
+            next="First, the easiest question: does the model still rank women correctly?",
+        ),
+        dict(
+            h="10.3 Does the ranking hold up?",
+            look="Whether the model still gives women who have diabetes higher risks than women who don't, and whether it beats the glucose reading alone.",
+            code="""
+a, g = m8["auc"], m8["glucose_only"]
+cur = json.load(open("../reports/metrics.json"))["current"]
+pd.DataFrame({"AUC": [cur["oof_auc"], a["value"], g["auc"], m8["a1c_only"]["auc"]],
+              "95% range": [f"{cur['oof_auc_ci'][0]:.2f} to {cur['oof_auc_ci'][1]:.2f}", f"{a['low']:.2f} to {a['high']:.2f}",
+                            f"{g['low']:.2f} to {g['high']:.2f}", "not computed"]},
+             index=["Pima women, unseen (50 splits)", "NHANES women: the model",
+                    "NHANES women: glucose alone", "NHANES women: model, HbA1c-only outcome (26 cases)"])""",
+            read="AUC is the chance that the model gives a randomly chosen woman with diabetes a higher risk than a randomly "
+                 "chosen woman without. The range comes from redrawing the 961 women 1,000 times with replacement. The "
+                 "glucose-alone row uses the glucose reading as the score, with no model at all. The last row repeats the "
+                 "test with the narrower outcome, HbA1c 6.5% or higher only.",
+            means="Yes, the ranking holds. The model's AUC is 0.88 on NHANES (0.82 to 0.93), in line with 0.85 on unseen Pima "
+                  "women. The two ranges overlap heavily, so there is no sign of a drop. But the glucose reading alone scores "
+                  "0.90, as good or better than the model (the ranges overlap almost entirely, so this is not a difference "
+                  "we can rely on in either direction). On this data the model adds nothing measurable beyond glucose, which "
+                  "fits notebook 08, where glucose did most of the work.",
+            next="Ranking is one thing. Are the risk numbers themselves right?",
+        ),
+        dict(
+            h="10.4 Are the risks right?",
+            look="Whether the average predicted risk matches the share of women who have diabetes, overall and band by band.",
+            code="""
+figures.m8_calibration();
+c = m8["calibration"]
+display(pd.Series({"average predicted risk": f"{c['mean_predicted']:.1%}", "share who have diabetes": f"{c['observed']:.1%}",
+                   "calibration slope (1.0 is ideal)": round(c["slope"], 2),
+                   "Brier score of the model": round(c["brier"], 3),
+                   "Brier score of saying 'everyone has the average risk'": round(c["brier_prevalence_only"], 3)}).to_frame("value"))
+pd.DataFrame(m8["bands"]).T.rename(columns={"n": "women", "mean_predicted": "average predicted", "observed": "share with diabetes"})""",
+            read="The left chart splits the 961 women into four groups by predicted risk and compares the model's average with "
+                 "the share who actually have diabetes. If the model were right, each pair of bars would match. The Brier "
+                 "score is the average squared gap between each woman's predicted risk and her outcome (0 or 1), lower is better. "
+                 "Comparing it with the score from quoting everyone the same average risk shows whether the individual risks add "
+                 "anything.",
+            means="The risks are far too high. The model predicts 25% on average and 3.9% had diabetes. In the top band, "
+                  "women predicted at 78% on average are 19% in fact. The model's Brier score (0.124) is more than three times "
+                  "worse than quoting the 3.9% average to everyone (0.037), so as probabilities they are worse than quoting the average here. "
+                  "The calibration slope of 0.85 shows a smaller second problem, that the risks are somewhat too spread out. Most "
+                  "of the gap is the base rate: the model learned from a group where 35% have diabetes. Some of it may be that "
+                  "NHANES counts diabetes differently (10.1), and this test cannot tell the two apart. Counting every woman with a "
+                  "glucose of 200 or more as well, which is closer to how the Pima outcome was set, raises the share only to 7.1%, "
+                  "still far below 25%.",
+            next="Is the gap fixable? Shift every risk by the same amount, and score it honestly.",
+        ),
+        dict(
+            h="10.5 Can a simple rescaling fix the risks?",
+            look="Whether moving every risk up or down by one fixed amount, learned on part of the NHANES women and tested on the rest, makes the risks usable.",
+            code="""
+r = m8["recalibrated"]
+pd.Series({"average risk after the shift": f"{r['mean_predicted']:.1%}", "share who have diabetes": f"{m8['prevalence']:.1%}",
+           "Brier score after the shift": round(r["brier"], 4), "Brier score of quoting the average": round(c["brier_prevalence_only"], 4),
+           "AUC after the shift": round(r["auc"], 3), "AUC before": round(a["value"], 3)}).to_frame("value")""",
+            read="The shift is found by trying values until the average predicted risk equals the share with diabetes. "
+                 "It is fitted on four fifths of the women and used on the held-out fifth, five times over, so the score "
+                 "is not flattered by choosing the shift on the same women it is tested on.",
+            means="The Brier score falls from 0.124 to 0.032, a little better than quoting the average (0.037). The ranking "
+                  "(AUC) does not change, because a shift moves every risk the same way. So the model's ranking plus a "
+                  "rescaling for the new population gives sensible risks. But the rescaling needs outside women with known "
+                  "outcomes, which is exactly what a new place may not have, and with 37 cases the improvement over "
+                  "the average is small.",
+            next="What does that mean for the cut-offs the page offers?",
+        ),
+        dict(
+            h="10.6 What the cut-offs do on NHANES",
+            look="How many cases each cut-off catches and how many false alarms it raises, per 100 women, beside the Pima figures.",
+            code="""
+figures.m8_cutoffs();
+rows = {}
+for r in m8["cutoffs"]:
+    v = m8["cutoffs"][r]
+    rows[f"{r}x (cut-off {v['cutoff']:.2f})"] = {"women flagged": f"{v['flagged']:.0%}", "cases caught": f"{v['sensitivity']:.0%}",
+                                                 "healthy women cleared": f"{v['specificity']:.0%}",
+                                                 "flagged women who have diabetes": f"{v['precision']:.1%}"}
+pd.DataFrame(rows).T""",
+            read="The charts show, for each of the three cost-based cut-offs, the cases caught, cases missed and false alarms "
+                 "per 100 women. Pima women are on the left (where the cut-offs were chosen) and NHANES women on the right. "
+                 "The table adds the share flagged and, of the women flagged, how many truly have diabetes.",
+            means="The share of cases caught is similar on NHANES: at the 5 times cut-off, 33 of 37 (89%) against 94% on the Pima "
+                  "women, and at 10 times 36 of 37 (97%). The price is very different. With only 4 in 100 women affected, the 5 "
+                  "times cut-off flags 45% of NHANES women, so about 42 in every 100 women get an unnecessary follow-up test, "
+                  "and only about 1 in 13 flagged women has diabetes (7.6%). The cut-off came from weighing a missed case against "
+                  "a false alarm in a group where 35% have diabetes. In a group where 4% do, the balance would sit "
+                  "elsewhere: the cut-off formula would need that group's own rate.",
+            next="Check whether the picture is the same for different kinds of women (E22).",
+        ),
+        dict(
+            h="10.7 Does it work equally for everyone? (E22)",
+            look="Ranking and risk by age group and by the ethnic group recorded in NHANES.",
+            code="""
+age = pd.DataFrame(m8["by_age"]).T
+age["auc"] = age["auc"].map(lambda v: "n/a" if v is None else f"{v:.2f}")
+display(age.rename(columns={"n": "women", "positives": "with diabetes", "auc": "AUC",
+                            "mean_predicted": "average predicted", "observed": "share with diabetes"}))
+grp = pd.DataFrame(m8["by_group"]).T
+grp["auc"] = grp["auc"].map(lambda v: "n/a" if v is None or v != v else f"{v:.2f}")
+grp.rename(columns={"n": "women", "positives": "with diabetes", "auc": "AUC",
+                    "mean_predicted": "average predicted", "observed": "share with diabetes"})""",
+            read="The same two measures as before, computed for each subgroup separately: AUC for the ranking, and average "
+                 "predicted risk against the share who have diabetes. Be careful with the AUC column: each subgroup has "
+                 "between 0 and 17 women with diabetes.",
+            means="The ranking looks good in every subgroup large enough to measure (AUC 0.84 to 0.98), with no group where it "
+                  "collapses. With 3 to 17 cases per group those numbers are very rough, so this does not show that the model "
+                  "works equally well for everyone; it shows that no group is obviously left out. The risks, by contrast, are too "
+                  "high in every group (for example 21% predicted against 2% for women under 45, and 17% against 4% for Asian women). The first thing to fix in a new setting is the level of the risks.",
+            next="Summarise what this changes.",
+        ),
+        dict(
+            h="10.8 What this changes",
+            look="Whether anything here alters the published model, the cut-off, or the claims.",
+            code="""
+pd.Series({"Published model changed": "no",
+           "Cut-off changed": "no (0.17 at 5 times, from Pima costs and base rate)",
+           "Claim that survives": "the ranking: AUC 0.88 on NHANES, close to 0.85 on Pima, but no better than glucose alone",
+           "Claim that does not": "the risk numbers: 25% predicted against 3.9% actual",
+           "New on the page": "an outside-data section and a plainer warning about where the risks can be trusted",
+           "Still unknown": "five-year onset in any other group (NHANES is a one-time snapshot)"}).to_frame("decision")""",
+            read="A summary of the decisions this notebook supports, in one table.",
+            means="Nothing about the model changes. The page now says what has been tested and what has not: the model has been "
+                  "run on one outside group, where it ranked well but its risk numbers were far too high. The honest claim is "
+                  "that the ranking generalises and the probabilities do not. That is a useful result for the portfolio as "
+                  "much as for the model: a model that scores well on its own data and badly on others is a normal finding, "
+                  "and the point of this milestone was to measure it.",
+            next="Milestone 9 looks inside the Pima data for groups and odd records the labels don't show.",
         ),
     ],
 )

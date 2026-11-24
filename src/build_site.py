@@ -42,6 +42,8 @@ NOTEBOOK_BLURBS = {
                                      "and the eight-input baseline model.",
     "04_missing_data": "Seven ways to handle the missing readings, a test of whether insulin can be guessed back, "
                        "and why the published model now leaves insulin and skinfold out.",
+    "10_external_validation": "The finished model, unchanged, tested on 961 women from a US national health survey: the ranking "
+                              "holds up, the risk numbers do not, and what that means for the cut-offs and for different groups of women.",
     "09_uncertainty": "A 95% range around each woman's risk, a simulation of whether that range is honest, and a "
                       "conformal rule that says yes, no or too uncertain to call, with its guarantee checked.",
     "08_explainability": "Which inputs matter, what shape each curve has, whether the BMI plateau is real, a SHAP check "
@@ -227,7 +229,21 @@ def tokens(m: dict) -> dict:
         "cf90_low": pct(m7["page_thresholds"]["0.1"]["low"]), "cf90_high": pct(m7["page_thresholds"]["0.1"]["high"]),
         "cf80_low": pct(m7["page_thresholds"]["0.2"]["low"]), "cf80_high": pct(m7["page_thresholds"]["0.2"]["high"]),
     }
-    extra = ratio_rows | m6_tokens | m7_tokens | {
+    m8 = m["m8"]
+    x5 = m8["cutoffs"]["5"]
+    m8_tokens = {
+        "x_n": f"{m8['n']:,}", "x_pos": str(m8["positives"]), "x_prev": pct(m8["prevalence"], 1), "x_prev_pima": pct(m8["pima_prevalence"]),
+        "x_auc": f"{m8['auc']['value']:.2f}", "x_auc_lo": f"{m8['auc']['low']:.2f}", "x_auc_hi": f"{m8['auc']['high']:.2f}",
+        "x_auc_glu": f"{m8['glucose_only']['auc']:.2f}", "x_pred": pct(m8["calibration"]["mean_predicted"]),
+        "x_top_pred": pct(m8["bands"]["60% and over"]["mean_predicted"]), "x_top_obs": pct(m8["bands"]["60% and over"]["observed"]),
+        "x_flag5": pct(x5["flagged"]), "x_flag5_pima": pct(m8["cutoffs_pima"]["5"]["flagged"]),
+        "x_sens5": pct(x5["sensitivity"]), "x_fa5": f"{x5['false_alarms_per_100']:.0f}", "x_prec5": pct(x5["precision"], 1),
+        "x_domain": f"{m8['domain_auc']:.2f}", "x_age_nh": f"{m8['shift']['Age']['nhanes_median']:.0f}",
+        "x_age_pima": f"{m8['shift']['Age']['pima_median']:.0f}",
+        "x_brier": f"{m8['calibration']['brier']:.3f}", "x_brier_avg": f"{m8['calibration']['brier_prevalence_only']:.3f}",
+        "x_brier_recal": f"{m8['recalibrated']['brier']:.3f}",
+    }
+    extra = ratio_rows | m6_tokens | m7_tokens | m8_tokens | {
         "pub_ratio": str(pub["ratio"]), "cut85": f"{scr['threshold']:.2f}", "cut85_pct": pct(scr["threshold"]),
         "old_ratio": f"{m5['costs']['old_implied_ratio']:.1f}",
         "cost5_old": f"{c5['cost_per_100']['Old rule (catch 85%)']:.0f}",

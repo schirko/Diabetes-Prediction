@@ -208,6 +208,23 @@ conformal rule's guarantee holds on new women.
 
 **Too uncertain to call.** The outcome when both "no" and "yes" fit at the chosen level. It is the price of the guarantee.
 
+## Testing on new data
+
+**External validation.** Testing a finished model, unchanged, on a different group of people from the one it was built on.
+It answers a question no amount of re-splitting the original data can: does it travel?
+
+**NHANES.** The US National Health and Nutrition Examination Survey, run by the CDC. A representative sample of people who
+are interviewed and examined. *Here: 961 women aged 21 and over from the 2013 to 2014 round who had the two-hour glucose test.*
+
+**HbA1c.** A blood test that reflects average blood sugar over about three months. 6.5% or higher counts as diabetes. *Used here
+to define who has diabetes in NHANES, because it is a different test from the glucose drink the model uses as an input.*
+
+**Dataset shift.** When the new group differs from the group the model learned from, in who is in it, how often the condition
+occurs, or how it was measured. *Here: the NHANES women are older and lighter, and 4% have diabetes against 35%.*
+
+**Recalibration.** Adjusting a model's risks so they match what happens in a new group, without changing how it ranks women. *Here:
+one shift applied to every risk, fitted on part of the NHANES women and tested on the rest.*
+
 ## Missing data
 
 **Missing value.** A measurement that was never taken. *In this data, a missing value is recorded as zero, which is

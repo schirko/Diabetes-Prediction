@@ -57,7 +57,7 @@ NOTEBOOK_BLURBS = {
     "06_model_contest": "Nine model types tuned fairly with nested cross-validation, a corrected test of the "
                         "differences, a stacked ensemble, and why the page keeps its model.",
 }
-DOCS = ["OVERVIEW", "GLOSSARY", "FINDINGS", "MILESTONES", "ENHANCEMENTS_AND_BUGS", "DECISIONS"]
+DOCS = ["OVERVIEW", "GLOSSARY", "FINDINGS", "MILESTONES", "ENHANCEMENTS_AND_BUGS", "DECISIONS", "MODEL_CARD"]
 
 PAGE_CSS = """
 :root { --bg:#f6f5f1; --surface:#fff; --ink:#1c211e; --muted:#4a524d; --line:#e2e0d8; --accent:#2E6A4C; --code:#f3f2ec; }
@@ -356,7 +356,7 @@ def build():
     for name in DOCS:
         text = (ROOT / "docs" / f"{name}.md").read_text(encoding="utf-8")
         text = re.sub(r"\]\((\w+)\.md\)", r"](\1.html)", text)      # links between the docs
-        title = {"OVERVIEW": "Start here", "ENHANCEMENTS_AND_BUGS": "Enhancements and bugs"}.get(
+        title = {"OVERVIEW": "Start here", "ENHANCEMENTS_AND_BUGS": "Enhancements and bugs", "MODEL_CARD": "Model card"}.get(
             name, name.replace("_", " ").title())
         (out / "docs" / f"{name}.html").write_text(shell(title, md(text)), encoding="utf-8")
 

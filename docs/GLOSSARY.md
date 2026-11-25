@@ -283,6 +283,19 @@ relatives had diabetes and how closely related they are. Higher means more famil
 **Insulin resistance.** When the body needs more insulin than usual to control blood sugar; a step towards type 2
 diabetes. *Tested in Milestone 3 as glucose times insulin; it added nothing.*
 
+## Keeping it reproducible
+
+**Model card.** A one-page standard description of a model: what it is for, what it is not for, the data, how well it works
+and for whom, and its known limits. *Here: [MODEL_CARD.md](MODEL_CARD.md).*
+
+**Continuous integration (CI) and GitHub Actions.** A service that automatically runs the project's checks every time new work
+is pushed to GitHub, and reports whether they pass. *Here: the tests and a full build of the project page.*
+
+**Experiment tracking and MLflow.** A tool that records each run of an analysis (its settings, its headline results and the
+version of the code) so runs can be compared later and any change in a number can be traced.
+
+**Reproducible.** Someone else, or the same person later, can rerun the work and get the same numbers.
+
 ## The project
 
 **Notebook.** A document mixing code, its results and explanations. Each step here follows the same pattern: what

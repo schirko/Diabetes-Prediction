@@ -11,3 +11,7 @@ archive/
 # Personal notes
 notes/
 data/nhanes/
+# MLflow run records (local)
+mlflow.db
+mlruns/
+mlartifacts/

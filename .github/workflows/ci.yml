@@ -1,0 +1,45 @@
+name: checks
+
+# Runs on every push and pull request: the tests, then a full build of the project page.
+# The slow jobs (re-running every notebook, re-scoring every model) are started by hand from the Actions tab.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      rerun_notebooks:
+        description: "Also re-run every notebook top to bottom (slow)"
+        type: boolean
+        default: false
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Tests
+        run: python -m pytest -q
+      - name: Build the project page
+        run: python -m src.build_site
+        env:
+          SITE_DIR: ${{ runner.temp }}/site
+
+  notebooks:
+    if: github.event_name == 'workflow_dispatch' && inputs.rerun_notebooks
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Re-run every notebook
+        run: python -m src.run_notebooks

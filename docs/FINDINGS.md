@@ -8,7 +8,7 @@ Each answer is the current one; when a later milestone changes it, the answer is
 under "Changed". Evidence points to the notebooks; item numbers (E10, B12, D11) refer to the
 [tracker](ENHANCEMENTS_AND_BUGS.md) and [decisions](DECISIONS.md).
 
-Last updated: 2026-11-23, after Milestone 9.
+Last updated: 2026-11-24, after Milestone 10.
 
 **How solid each answer is:**
 

@@ -3,7 +3,7 @@
 This page explains the whole project without statistics. Words in **bold** are explained in the
 [glossary](GLOSSARY.md). For the full list of conclusions, see the [findings](FINDINGS.md).
 
-Last updated: 2026-11-23, after Milestone 9.
+Last updated: 2026-11-24, after Milestone 10.
 
 ## The question
 
@@ -152,6 +152,9 @@ the ranking travels and the numbers do not. Only 37 of the 961 women have diabet
     no groups in it and do not hold steady, and adding them to the model does not help. Odd records are easy to find (the
     insulin of 846 and skinfold of 99 stand out) but removing them changes nothing. The page now warns when the numbers
     you enter are unlike the women the model learned from.
+12. **Someone else can rebuild and check it.** A one-page [model card](MODEL_CARD.md) says what the model is for and where it
+    breaks. Every push to GitHub re-runs the tests and rebuilds the page automatically, and every evaluation run is recorded
+    so any change in a number can be traced.
 
 ## What it can't tell you
 
@@ -163,9 +166,9 @@ the ranking travels and the numbers do not. Only 37 of the 961 women have diabet
 
 ## What's next
 
-The project is planned as ten **milestones**. Nine are done. The next one asks:
+The project is planned as ten **milestones**, all done, plus a final presentation:
 
-- **Milestone 10:** could someone else rebuild, test and trust this (a model card, automatic tests, run tracking)?
+- **Milestone 11:** tell the whole story in about 12 slides that a non-analyst can follow.
 
 The full plan is in the [roadmap](MILESTONES.md).
 

@@ -15,8 +15,8 @@ Item numbers (E08, B10) refer to [ENHANCEMENTS_AND_BUGS.md](ENHANCEMENTS_AND_BUG
 | M7 | Uncertainty | Done 2026-11-23 | How sure is the model about one person's estimate? | 09 |
 | M8 | External validation | Done 2026-11-23 | Does it work on people who are not in this dataset? | 10 |
 | M9 | Unsupervised structure | Done 2026-11-23 | Are there natural groups or odd records the labels don't show? | 11 |
-| M10 | Production polish | Next | Could someone else rebuild, test and trust this? | none |
-| M11 | Presentation | Planned, after M10 | Can the whole project be told in 12 slides to a non-analyst? | none |
+| M10 | Production polish | Done 2026-11-24 | Could someone else rebuild, test and trust this? | none |
+| M11 | Presentation | Next | Can the whole project be told in 12 slides to a non-analyst? | none |
 
 ## M1. Honest baseline and first app (done)
 
@@ -143,6 +143,13 @@ What came out of it:
 - E27: experiment tracking with MLflow.
 - E28: optional Streamlit or FastAPI version on the VPS.
 
+**Exit check, met:** a stranger can clone the repo, install, and get the same numbers; every push is checked automatically; each evaluation run is recorded.
+
+What came out of it:
+- E25: `docs/MODEL_CARD.md`, one page covering intended use, what it is not for, the data, performance by age group and on the outside survey, uncertainty and known limits. A test fails if any number in the card stops matching `reports/metrics.json`.
+- E26: `.github/workflows/ci.yml` runs the tests and builds the whole project page on every push and pull request. Re-running all eleven notebooks is slow, so it is a separate job started by hand from the Actions tab (D32).
+- E27: `src/tracking.py` logs every `python -m src.evaluate` run to MLflow (settings, headline numbers, report files, the Git commit) in a local database. Re-running the evaluation reproduced `metrics.json` exactly, which is the point of tracking it (D33).
+- E28: not built. The page already runs the model in the browser from lookup tables, with no server to keep up (D34).
 ## M11. Presentation (after all other milestones)
 
 Same approach as the meat-prices project.

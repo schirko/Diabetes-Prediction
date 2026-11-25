@@ -377,6 +377,15 @@ def main():
         REPORTS / "oof.csv", index=False)
     (REPORTS / "model.json").write_text(json.dumps(nl.export_curves_model(Xc, y), indent=1))
 
+    from . import tracking
+    try:
+        run_id = tracking.log_run(metrics, [REPORTS / "metrics.json", REPORTS / "model.json"])
+    except Exception as e:          # tracking must never stop an evaluation
+        run_id = ""
+        print(f"MLflow logging failed ({type(e).__name__}); the evaluation itself is unaffected.")
+    if run_id:
+        print("Logged to MLflow run", run_id, "(view with: mlflow ui --backend-store-uri sqlite:///mlflow.db)")
+
     print(table[["auc", "auc_sd", "avg_precision", "brier", "accuracy", "sensitivity"]].round(3).to_string())
     print(f"\nOut-of-fold AUC {metrics['oof_auc']:.3f}, 95% interval "
           f"{metrics['oof_auc_ci'][0]:.3f} to {metrics['oof_auc_ci'][1]:.3f}")

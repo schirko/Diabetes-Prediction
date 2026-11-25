@@ -14,6 +14,8 @@ imbalanced-learn
 umap-learn
 # Explanations (Milestone 6)
 shap
+# Run tracking (Milestone 10)
+mlflow
 # Notebooks (run inside PyCharm, or all at once with: python -m src.run_notebooks)
 jupyter
 ipykernel

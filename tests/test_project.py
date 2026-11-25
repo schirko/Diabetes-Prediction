@@ -214,3 +214,29 @@ def test_m9_structure_results_and_page_distance():
     # a woman with very unusual numbers is far beyond the line; a typical woman is not
     odd = pd.DataFrame([{"Pregnancies": 0, "Glucose": 57, "BloodPressure": 30, "BMI": 55, "DiabetesPedigreeFunction": 2.3, "Age": 67}])
     assert structure.distance(ex, odd)[0] > ex["q99"]
+
+
+def test_model_card_numbers_match_the_metrics():
+    import re
+    card = (ROOT / "docs" / "MODEL_CARD.md").read_text(encoding="utf-8")
+    m = json.loads((ROOT / "reports" / "metrics.json").read_text())
+    cur = m["current"]
+    assert f"{cur['oof_auc']:.2f} (95% interval {cur['oof_auc_ci'][0]:.2f} to {cur['oof_auc_ci'][1]:.2f})" in card
+    assert f"| Calibration slope (1.0 is ideal) | {cur['calibration']['slope']:.2f} |" in card
+    pub = m["m5"]["published"]
+    assert f"{pub['cutoff'] * 100:.0f}% cut-off" in card
+    per = pub["per_100"]
+    assert f"{per['tp']} caught, {per['fn']} missed, {per['fp']} false alarms, {per['tn']} correctly cleared" in card
+    for band in cur["by_age"]:
+        assert re.search(rf"\| {re.escape(band['band'])} \| {band['n']} \| {band['auc']:.2f} \|", card), band["band"]
+    ext = m["m8"]
+    assert f"{ext['auc']['value']:.2f} ({ext['auc']['low']:.2f} to {ext['auc']['high']:.2f})" in card
+    assert f"{ext['calibration']['mean_predicted'] * 100:.0f}% against {ext['calibration']['observed'] * 100:.1f}%" in card
+
+
+def test_tracking_headline_has_the_numbers_worth_comparing():
+    from src import tracking
+    m = json.loads((ROOT / "reports" / "metrics.json").read_text())
+    h = tracking.headline(m)
+    assert 0.8 < h["auc"] < 0.9 and h["auc_low"] < h["auc"] < h["auc_high"]
+    assert all(isinstance(v, float) for v in h.values())

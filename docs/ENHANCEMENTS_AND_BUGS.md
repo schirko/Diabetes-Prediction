@@ -3,7 +3,7 @@
 One numbered list for everything done and planned. Refer to items by number (E08, B10).
 Numbers are never reused. Milestones are described in [MILESTONES.md](MILESTONES.md).
 
-Last updated: 2026-11-23
+Last updated: 2026-11-24
 
 ## Enhancements
 
@@ -33,10 +33,10 @@ Last updated: 2026-11-23
 | E22 | Population-shift measurement (domain AUC 0.92), recalibration by one shift, subgroup checks by age and ethnic group | M8 | Done |
 | E23 | Clustering and low-dimensional maps (PCA, UMAP): one cloud, no stable groups; groups and distances do not improve AUC | M9 | Done |
 | E24 | Anomaly detection as a data-quality check (three methods, known extremes found); removing odd records changes nothing; page notice for unusual inputs | M9 | Done |
-| E25 | Model card | M10 | Planned |
-| E26 | GitHub Actions: tests and notebooks re-run on every push | M10 | Planned |
-| E27 | Experiment tracking with MLflow | M10 | Planned |
-| E28 | Optional Streamlit or FastAPI version on the VPS | M10 | Planned |
+| E25 | Model card (`docs/MODEL_CARD.md`), with a test that keeps its numbers in step with the metrics | M10 | Done |
+| E26 | GitHub Actions: tests and a full page build on every push; notebooks re-run on demand | M10 | Done |
+| E27 | Experiment tracking with MLflow: every evaluation run logged (settings, headline numbers, files, Git commit) | M10 | Done |
+| E28 | Optional Streamlit or FastAPI version on the VPS | M10 | Dropped: the static page already runs the model in the browser with no server (D34); can be revived if a live API is wanted |
 | E29 | Re-test insulin in a form that should matter: log scale and combined with glucose (insulin resistance), on women who have a reading; added nothing | M3 | Done |
 | E30 | Published model reduced to six inputs (insulin and skinfold left out); app, page numbers and tests follow the current model | M2 | Done |
 | E31 | Cut-offs set separately by age band (fix for B12). Tested; one shared cost-based cut-off does as well or better, so not adopted | M5 | Done (not needed) |

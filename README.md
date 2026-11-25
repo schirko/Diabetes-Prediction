@@ -46,10 +46,13 @@ Every finding, organised by question and marked by how solid it is, is in [docs/
 | `docs/OVERVIEW.md` | Start here: the project in plain English |
 | `docs/GLOSSARY.md` | Every technical term, with an example from this project |
 | `docs/FINDINGS.md` | What the project has established, one question at a time |
-| `docs/MILESTONES.md` | The ten-milestone plan |
+| `docs/MILESTONES.md` | The milestone plan |
 | `docs/ENHANCEMENTS_AND_BUGS.md` | Numbered tracker (E01..., B01...) |
 | `tools/make_notebooks.py` | Scaffold that writes the notebooks' structure and text |
 | `docs/DECISIONS.md` | Why things are the way they are |
+| `docs/MODEL_CARD.md` | The model on one page: intended use, limits, performance by group (Milestone 10) |
+| `src/tracking.py` | Milestone 10: logs each evaluation run with MLflow |
+| `.github/workflows/ci.yml` | Milestone 10: re-runs the tests and rebuilds the page on every push |
 | `tests/` | Checks, including that the web page's maths equals scikit-learn's |
 | `Diabetes.ipynb` | The original college notebook, kept unchanged as the "before" |
 
@@ -61,6 +64,7 @@ python -m src.evaluate          # scores every model, writes reports/
 python -m src.run_notebooks     # re-runs the notebooks so outputs match the code
 python -m pytest                # checks
 python -m src.build_site        # writes the site to SITE_DIR (see .env.example)
+mlflow ui --backend-store-uri sqlite:///mlflow.db   # browse past evaluation runs (after running evaluate)
 ```
 
 ## Limits

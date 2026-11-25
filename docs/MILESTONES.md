@@ -16,7 +16,7 @@ Item numbers (E08, B10) refer to [ENHANCEMENTS_AND_BUGS.md](ENHANCEMENTS_AND_BUG
 | M8 | External validation | Done 2026-11-23 | Does it work on people who are not in this dataset? | 10 |
 | M9 | Unsupervised structure | Done 2026-11-23 | Are there natural groups or odd records the labels don't show? | 11 |
 | M10 | Production polish | Done 2026-11-24 | Could someone else rebuild, test and trust this? | none |
-| M11 | Presentation | Next | Can the whole project be told in 12 slides to a non-analyst? | none |
+| M11 | Presentation | In progress: plan written, awaiting review | Can the whole project be told in 12 slides to a non-analyst? | none |
 
 ## M1. Honest baseline and first app (done)
 
@@ -154,7 +154,7 @@ What came out of it:
 
 Same approach as the meat-prices project.
 
-- E34: write `docs/PRESENTATION_PLAN.md` first: about 12 slides plus an appendix, each with one headline a
+- E34: [`docs/PRESENTATION_PLAN.md`](PRESENTATION_PLAN.md) is written (2026-11-25, draft for review). Original brief: write it first: about 12 slides plus an appendix, each with one headline a
   non-analyst can read on its own, one visual, and what to say over it. Story arc: the question → the lucky 81% →
   what the model does (100 women) → what drives risk → the model contest → the cut-off trade-off → who it serves
   less well → does it work elsewhere → verdict and limits.

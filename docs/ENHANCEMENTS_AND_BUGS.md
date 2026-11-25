@@ -42,7 +42,7 @@ Last updated: 2026-11-24
 | E31 | Cut-offs set separately by age band (fix for B12). Tested; one shared cost-based cut-off does as well or better, so not adopted | M5 | Done (not needed) |
 | E32 | Published model switched to curves for glucose, BMI and age, with extremes held at the 1st and 99th percentiles; the app runs it from lookup tables | M3 | Done |
 | E33 | Documentation for non-analysts: a five-minute overview, a glossary, plain-language summaries on every finding and notebook, and a reworked project page (how it works, 100-women picture, findings told as a story with how to read each chart) | M3 | Done |
-| E34 | Presentation: a plan (PRESENTATION_PLAN.md), then a 12-slide deck for non-analysts in HTML, PowerPoint and PNG (plus PDF), linked from the project page; modelled on the meat-prices deck | M11 | Planned |
+| E34 | Presentation: a plan (PRESENTATION_PLAN.md), then a 12-slide deck for non-analysts in HTML, PowerPoint and PNG (plus PDF), linked from the project page; modelled on the meat-prices deck | M11 | In progress: plan drafted 2026-11-25 |
 
 ## Bugs
 
